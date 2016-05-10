@@ -1,0 +1,2 @@
+class DataCenter
+end
