@@ -2,7 +2,7 @@ class Entry
   def initialize(term, committed, message)
     @message = message
     @term = term
-    @committed = committed
+    @committed = committed == 0 ? false : true
 
   end
 
