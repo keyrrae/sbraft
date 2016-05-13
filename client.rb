@@ -45,7 +45,7 @@ def run
 
       when 'lookup' , 'l'
         puts 'Looking up'
-      # TODO: look up function
+        # TODO: look up function
 
       when 'exit' , 'e'
         puts 'Exiting'
