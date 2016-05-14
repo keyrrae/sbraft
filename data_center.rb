@@ -1,5 +1,5 @@
-require "bunny"
-require_relative "log"
+require 'bunny'
+require_relative 'log'
 
 class DataCenter
 
@@ -45,10 +45,11 @@ class DataCenter
     t2 = Thread.new do
       while true
         if @signal_queue.empty?
-          continue
+          next
         else
           signal = @signal_queue.shift # dequeue from front
           dispatch(signal)
+          puts signal
         end #if
       end # while
     end # thread

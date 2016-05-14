@@ -74,10 +74,6 @@ class Log
 end
 
 
-
-
-
-
 log = Log.new('dc1')
 
 

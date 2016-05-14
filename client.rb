@@ -22,9 +22,6 @@ class Client
     @conn.start
     @ch   = @conn.create_channel
     @msg_queue    = @ch.queue(queue_name)
-
-
-
   end
 
   def run
