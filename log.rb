@@ -1,30 +1,21 @@
 class Entry
+
+  attr_accessor(:index, :term, :type, :message)
+
   def initialize(index, term, type, message)
-    @index = index
-    @term = term
-    @type = type
-    @message = message
+    self.index = index
+    self.term = term
+    self.type = type
+    self.message = message
 
-  end
-
-  def get_term
-    @term
-  end
-
-  def get_message
-    @message
-  end
-
-  def get_type
-    @type
-  end
-
-  def set_type(type)
-    @type = type
   end
 
   def is_committed
-    @type == :accepted
+    self.type == :accepted
+  end
+
+  def to_s
+    "#{self.index} #{self.term} #{self.type} #{self.message}\n"
   end
 
 end
@@ -34,27 +25,25 @@ class Log
   def initialize(datacenter_name)
     @filename = "raft-#{datacenter_name}.log"
     @log_array = []
-    @term = 0
-
+    @index = 0
+    retrieve_log_from_disk
   end
 
   def retrieve_log_from_disk
     begin
-      @file = File.open(@filename,'r')
+      file = File.open(@filename,'r')
       puts "Found existing log #@filename"
 
-      @file.readlines.each do |line|
-        parsed_line = line.strip.split(' ', 2)
-        term = parsed_line[0].to_i
-        if term > @term
-          @term = t
-        end
+      file.readlines.each do |line|
+        parsed_line = line.strip.split(' ', 3)
+        index = parsed_line[0].to_i
+        term = parsed_line[1].to_i
 
-        type = parsed_line[1].to_i == 0 ? :prepare : :accepted
+        type = parsed_line[2].to_i == 0 ? :prepare : :accepted
 
-        entry = Entry.new(term, type, parsed_line[2])
+        entry = Entry.new(index, term, type, parsed_line[2])
         @log_array << entry
-
+        @index += 1
       end
 
       return true
@@ -64,6 +53,17 @@ class Log
     end
   end
 
+  def save_log_to_disk
+    begin
+
+      file = File.open(@filename, 'w')
+      @log_array.each do |entry|
+        file.write(entry.to_s)
+      end
+    rescue
+      puts 'File write exception'
+    end
+  end
 
   def print_log
 
@@ -78,14 +78,27 @@ class Log
      end
   end
 
-  def add_entry(message, type)
+  def add_entry(term, type, message)
     if type == :prepare
-      @log_array << Entry.new(@term, type, message)
+      @index += 1
+      @log_array << Entry.new(@index, term, type, message)
     elsif type == :accepted
-
+      # TODO : update condition
+      if @log_array[-1].type == :prepare
+        @log_array[-1].type = :accepted
+      end
     end
 
   end
 end
 
 
+log = Log.new('dc1')
+=begin
+log.add_entry(1, :prepare, 'hello')
+log.add_entry(1, :accepted, 'hello')
+log.add_entry(2, :prepare, 'world')
+log.add_entry(2, :accepted, 'world')
+log.save_log_to_disk
+=end
+log.print_log
