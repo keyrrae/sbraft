@@ -1,21 +1,20 @@
 class Entry
-  def initialize(term, committed, message)
-    @message = message
-    @term = term
-    @committed = committed == 0 ? false : true
+  attr_accessor(:index, :term, :type, :message)
 
-  end
+  def initialize(index, term, type, message)
+    self.index = index
+    self.term = term
+    self.type = type
+    self.message = message
 
-  def get_term
-    @term
-  end
-
-  def get_message
-    @message
   end
 
   def is_committed
-    @committed
+    self.type == :accepted
+  end
+
+  def to_s
+    "#{self.index} #{self.term} #{self.type} #{self.message}\n"
   end
 
 end

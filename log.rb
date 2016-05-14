@@ -1,24 +1,4 @@
-class Entry
-
-  attr_accessor(:index, :term, :type, :message)
-
-  def initialize(index, term, type, message)
-    self.index = index
-    self.term = term
-    self.type = type
-    self.message = message
-
-  end
-
-  def is_committed
-    self.type == :accepted
-  end
-
-  def to_s
-    "#{self.index} #{self.term} #{self.type} #{self.message}\n"
-  end
-
-end
+require_relative 'entry'
 
 class Log
 
@@ -32,7 +12,7 @@ class Log
   def retrieve_log_from_disk
     begin
       file = File.open(@filename,'r')
-      puts "Found existing log #@filename"
+      puts "Found existing log #{@filename}"
 
       file.readlines.each do |line|
         parsed_line = line.strip.split(' ', 3)
@@ -67,15 +47,15 @@ class Log
 
   def print_log
 
-     # log is empty
-     if @log_array == []
-       puts 'EMPTY'
-     else
-       puts "term\tcommitted\tmessage"
-       @log_array.each do |log_entry|
-         puts "#{log_entry}"
-       end
-     end
+    # log is empty
+    if @log_array == []
+      puts 'EMPTY'
+    else
+      puts "term\tcommitted\tmessage"
+      @log_array.each do |log_entry|
+        puts "#{log_entry}"
+      end
+    end
   end
 
   def add_entry(term, type, message)
@@ -90,15 +70,24 @@ class Log
     end
 
   end
+
 end
 
 
+
+
+
+
 log = Log.new('dc1')
+
+
 =begin
+
 log.add_entry(1, :prepare, 'hello')
 log.add_entry(1, :accepted, 'hello')
 log.add_entry(2, :prepare, 'world')
 log.add_entry(2, :accepted, 'world')
 log.save_log_to_disk
+
 =end
 log.print_log
