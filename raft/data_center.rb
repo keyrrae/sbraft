@@ -3,20 +3,14 @@ require_relative 'log'
 
 class DataCenter
 
-  attr_accessor(:datacenter_name, :log, :role, :state)
+  attr_accessor(:datacenter_name, :log, :fsm, :state, :timer)
 
   def initialize(datacenter_name, ip)
     self.datacenter_name = datacenter_name
-    self.log = Log.new(datacenter_name)
-    self.role = :follower
 
     #@timeout_milli = 1000
-    @timeout_milli = rand(100..500)
-
-    @last_timestamp = Time.now
 
     @current_term = 1
-
     @conn = Bunny.new(:hostname => ip)
     @conn.start
 
@@ -58,11 +52,9 @@ class DataCenter
 
       while true
         # check if timeout handle timeout
-        temp = Time.now
-        if time_diff_milli(@last_timestamp, temp) > @timeout_milli
-          puts 'timeout'
-          @last_timestamp = temp
 
+        if timer.timeout?
+          puts 'timeout'
           handle_timeout
         end
 
@@ -85,7 +77,7 @@ class DataCenter
     puts signal
     case self.role
       when :follower
-        
+
       when :candidate
 
       when :leader
@@ -112,6 +104,43 @@ class DataCenter
 
 
 end
+
+
+class Timer
+
+  attr_accessor(:last_timestamp, :timeout_milli)
+
+  def initialize
+    self.timeout_milli = rand(100..500)
+    self.last_timestamp = Time.now
+  end
+
+  def timeout?
+    temp = Time.now
+    if time_diff_milli(@last_timestamp, temp) > @timeout_milli then
+      @last_timestamp = temp
+      true
+    else
+      false
+    end
+  end
+
+  def time_diff_milli(start, finish)
+    (finish - start) * 1000.0
+  end
+end
+
+
+class FiniteStateMachine
+  attr_accessor (:role, :timer)
+  def initialize
+    self.role = :follower
+    self.timer = Timer.new
+  end
+
+end
+
+
 
 dc1 = DataCenter.new('dc1', '169.231.10.109')
 dc1.run
