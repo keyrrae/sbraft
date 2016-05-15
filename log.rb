@@ -74,16 +74,16 @@ class Log
 end
 
 
-log = Log.new('dc1')
+
 
 
 =begin
-
+log = Log.new('dc1')
 log.add_entry(1, :prepare, 'hello')
 log.add_entry(1, :accepted, 'hello')
 log.add_entry(2, :prepare, 'world')
 log.add_entry(2, :accepted, 'world')
 log.save_log_to_disk
-
-=end
 log.print_log
+=end
+
