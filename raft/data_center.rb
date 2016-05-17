@@ -14,8 +14,8 @@ class DataCenter
     @conn = Bunny.new(:hostname => ip)
     @conn.start
 
-    @ch   = @conn.create_channel
-    @msg_queue    = @ch.queue('hello')
+    @ch = @conn.create_channel
+    @msg_queue = @ch.queue('hello')
     @signal_queue = []
 
 
@@ -131,8 +131,65 @@ class Timer
 end
 
 
+class State
+  def response_to_signal(context, signal)
+    raise "State is not implemented, cannot process #{signal}"
+  end
+end
+
+
+class Candidate < State
+  def respond_to_signal(context, signal)
+
+  end
+end
+
+
+class Follower < State
+  attr_accessor(:timer)
+
+
+  def respond_to_signal(context, signal)
+    if signal.downcase == 'start'
+      self.timer = Timer.new
+      while(true)
+        if self.timer.timeout?
+          puts 'timeout'
+          context.set_state(Candidate.new)
+        end
+      end
+    end
+  end
+end
+
+
+class Leader < State
+  def respond_to_signal(context, signal)
+
+  end
+end
+
+
+class StateContext
+
+  attr_accessor(:current_state)
+  def initialize
+    self.current_state = Follower.new
+  end
+
+  def set_state(new_state)
+    self.current_state = new_state
+  end
+
+  def respond_to_signal(signal)
+    self.current_state.respond_to_signal(self, signal)
+  end
+
+end
+
+
 class FiniteStateMachine
-  attr_accessor (:role, :timer)
+  attr_accessor(:role, :timer)
   def initialize
     self.role = :follower
     self.timer = Timer.new
