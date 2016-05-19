@@ -1,15 +1,18 @@
 require 'bunny'
+require 'json'
+require_relative 'misc'
 
 class Client
-  attr_accessor(:request_queue)
+  attr_accessor(:request_queue, :counter)
 
   def initialize(ip, queue_name)
     @conn = Bunny.new(:hostname => ip)
     @conn.start
     @ch   = @conn.create_channel
-    self.request_queue = Quene.new
-    @leader = None
+    self.request_queue = []
+    @leader = nil
     @servers = []
+    self.counter = 1 # unique monotonically increasing id, 0 for lookup request
     @msg_queue    = @ch.queue(queue_name)
     @cmd = CommandInterface.new(self)
     run
@@ -26,6 +29,37 @@ class Client
     # Consumer
     t2 = Thread.new do
       # TODO: client protocol
+      while true
+        until self.request_queue.empty?
+          req = self.pop_request
+          tmr = Timer.new(100)
+
+          # TODO: send request to leader
+
+          next_server_index = 0
+          while true
+
+            if tmr.timeout?
+              next_server = @servers[next_server_index]
+              # TODO: send request to next_server
+            end
+            # TODO: poll response
+            # if got a response
+            #   if response.leader != @leader
+            #     @servers.remove(response.leader)
+            #     @servers.add(@leader)
+            #     @leader = response.leader
+            #   end
+            #   if response.type == 'posted'
+            #     puts 'posted'
+            #     STDOUT.flush
+            #   else
+            #     puts response.content
+            #     STDOUT.flush
+            #   end
+          end
+        end
+      end
     end
 
     t1.join
@@ -39,7 +73,7 @@ class Client
 
   def pop_request
     if self.request_queue.empty?
-      None
+      nil
     elsif
       req << self.request_queue
       req
@@ -62,6 +96,10 @@ class CommandInterface
 
     puts 'lookup(l)'
     puts '  - Display the posts in DS-blog in casual order'
+    puts ''
+
+    puts 'help(h)'
+    puts '  - Commands'
     puts ''
 
     puts 'exit(e or quit or q)'
@@ -94,12 +132,15 @@ class CommandInterface
           else
             puts 'Posting message: ' + cmd_parsed[1]
             # TODO: post message
-            @ch.default_exchange.publish(cmd_parsed[1], :routing_key => @msg_queue.name)
+            @client.push_request(ClientRequest.new(@client.counter, cmd_parsed[1], 'post'))
+            @client.counter += 1
+            #@ch.default_exchange.publish(cmd_parsed[1], :routing_key => @msg_queue.name)
           end
 
         when 'lookup' , 'l'
           puts 'Looking up'
-        # TODO: look up function
+          # TODO: look up function
+          @client.request_queue << ClientRequest.new(0, '', 'lookup')
 
         when 'exit' , 'e', 'quit', 'q'
           puts 'Exiting'
@@ -120,19 +161,41 @@ end
 
 
 class ClientRequest
+  attr_accessor(:id, :command, :type)
 
+  def initialize(id, command, type)
+    self.id = id
+    self.command = command
+    self.type = type
+  end
+
+  def is_lookup?
+    self.type == 'lookup'
+  end
+
+  def is_post?
+    self.type == 'post'
+  end
+
+  def to_json
+    hash = {}
+    hash['id'] = self.id.to_s
+    hash['command'] = self.command
+    hash['type'] = self.type.to_s
+
+    JSON.dump(hash)
+  end
+
+  def self.parse_json(string)
+    hash = JSON.load(string)
+
+    self.new(hash['id'].to_i, hash['command'], hash['type'])
+  end
 end
 
-class LookupRequest < ClientRequest
 
-end
-
-class PostRequest < ClientRequest
-
-end
-
-c = Client.new('169.231.10.109', 'hello')
-c.run
+#c = Client.new('169.231.10.109', 'hello')
+#c.run
 
 
 =begin
