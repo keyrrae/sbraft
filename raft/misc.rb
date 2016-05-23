@@ -18,7 +18,7 @@ class Timer
 
   def timeout?
     temp = Time.now
-    if time_diff_milli(@last_timestamp, temp) > @timeout_milli then
+    if time_diff_milli(@last_timestamp, temp) > self.timeout_milli then
       @last_timestamp = temp
       true
     else

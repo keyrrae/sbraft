@@ -20,6 +20,10 @@ class DataCenter
     @msg_queue = @ch.queue('hello')
     @signal_queue = []
 
+    @voted_for = nil
+    @commit_index = 0
+    @peers = {}
+
 
   end
 
@@ -316,6 +320,20 @@ class StateContext
     self.current_state.respond_to_signal(signal)
   end
 
+end
+
+
+class Peer
+  attr_accessor(:name, :ip)
+
+  def initialize(name, ip)
+    self.name = name
+    self.ip = ip
+    @next_index = 1
+    @match_index = 0
+    @vote_granted = false
+
+  end
 end
 
 =begin
