@@ -4,7 +4,7 @@ require_relative 'misc'
 
 class DataCenter
 
-  attr_accessor(:datacenter_name, :quorum, :log, :fsm, :state, :timer)
+  attr_accessor(:datacenter_name, :quorum, :log, :current_term, :fsm, :state, :timer)
 
   def initialize(datacenter_name, ip, quorum)
     self.datacenter_name = datacenter_name
@@ -12,12 +12,13 @@ class DataCenter
     self.log = Log.new(datacenter_name)
     #@timeout_milli = 1000
 
-    @current_term = 1
+    self.current_term = 1
     @conn = Bunny.new(:hostname => ip)
     @conn.start
 
     @ch = @conn.create_channel
     @msg_queue = @ch.queue('hello')
+
     @signal_queue = []
 
     @voted_for = nil
@@ -28,7 +29,7 @@ class DataCenter
   end
 
   def new_term
-    @current_term += 1
+    self.current_term += 1
   end
 
   def run

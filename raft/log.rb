@@ -1,4 +1,3 @@
-require_relative 'entry'
 
 class Log
 
@@ -7,6 +6,15 @@ class Log
     @log_array = []
     @index = 0
     retrieve_log_from_disk
+
+  end
+
+  def get_last_term
+    @log_array.last.term
+  end
+
+  def get_last_index
+    @log_array.length + 1
   end
 
   def retrieve_log_from_disk
@@ -15,13 +23,13 @@ class Log
       puts "Found existing log #{@filename}"
 
       file.readlines.each do |line|
-        parsed_line = line.strip.split(' ', 3)
-        index = parsed_line[0].to_i
-        term = parsed_line[1].to_i
+        parsed_line = line.strip.split(' ', 2)
 
-        type = parsed_line[2].to_i == 0 ? :prepare : :accepted
+        term = parsed_line[0].to_i
 
-        entry = Entry.new(index, term, type, parsed_line[2])
+        type = parsed_line[1].to_i == 0 ? :prepare : :accepted
+
+        entry = Entry.new(term, type, parsed_line[2])
         @log_array << entry
         @index += 1
       end
@@ -60,8 +68,8 @@ class Log
 
   def add_entry(term, type, message)
     if type == :prepare
-      @index += 1
-      @log_array << Entry.new(@index, term, type, message)
+
+      @log_array << Entry.new(term, type, message)
     elsif type == :accepted
       # TODO : update condition
       if @log_array[-1].type == :prepare
@@ -74,7 +82,26 @@ class Log
 end
 
 
+class Entry
+  attr_accessor(:term, :type, :message)
 
+  def initialize(term, type, message)
+
+    self.term = term
+    self.type = type
+    self.message = message
+
+  end
+
+  def is_committed
+    self.type == :accepted
+  end
+
+  def to_s
+    "#{self.term} #{self.type} #{self.message}\n"
+  end
+
+end
 
 
 =begin
