@@ -6,11 +6,30 @@ class DataCenter
 
   attr_accessor(:datacenter_name, :quorum, :log, :current_term, :fsm, :state, :timer)
 
-  def initialize(datacenter_name, ip, quorum)
+  def initialize(datacenter_name, ip)
     self.datacenter_name = datacenter_name
-    self.quorum = quorum
+    @cfg_filename = 'configuration.txt'
+    @peers = {}
+
+    begin
+      file = File.open(@cfg_filename,'r')
+      puts "Found configuration file #{@cfg_filename}"
+
+      file.readlines.each do |line|
+        dc_name = line.strip
+        if dc_name != self.datacenter_name
+          @peers[dc_name] = Peer.new(dc_name)
+        end
+
+      end
+
+    rescue
+      return false
+    end
+
+
     self.log = Log.new(datacenter_name)
-    #@timeout_milli = 1000
+
 
     self.current_term = 1
     @conn = Bunny.new(:hostname => ip)
@@ -19,11 +38,8 @@ class DataCenter
     @ch = @conn.create_channel
     @msg_queue = @ch.queue('hello')
 
-    @signal_queue = []
-
     @voted_for = nil
     @commit_index = 0
-    @peers = {}
 
 
   end
@@ -32,6 +48,16 @@ class DataCenter
     self.current_term += 1
   end
 
+  def run
+    puts 'start'
+    t1 = Thread.new do
+      while true
+
+      end
+    end
+    t1.join
+  end
+=begin
   def run
     #Process messages(from Client and other Data Centers)
     t1 = Thread.new do
@@ -109,7 +135,7 @@ class DataCenter
 
   end
 
-
+=end
 end
 
 
@@ -325,11 +351,11 @@ end
 
 
 class Peer
-  attr_accessor(:name, :ip)
+  attr_accessor(:name)
 
-  def initialize(name, ip)
+  def initialize(name)
     self.name = name
-    self.ip = ip
+
     @next_index = 1
     @match_index = 0
     @vote_granted = false
@@ -350,7 +376,8 @@ end
 
 =end
 
-dc1 = DataCenter.new('dc1', '169.231.10.109', 3)
+dc1 = DataCenter.new('dc1', '169.231.10.109')
 dc1.run
 
-
+dc2 = DataCenter.new('dc2', '169.231.10.109')
+dc2.run
