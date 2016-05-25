@@ -1,16 +1,17 @@
 require 'bunny'
 require_relative 'log'
-require_relative 'misc'
+require './misc'
 
 class DataCenter
 
-  attr_accessor(:datacenter_name, :quorum, :log, :current_term, :fsm, :state, :timer)
+  attr_accessor(:datacenter_name, :quorum, :log, :current_term, :fsm, :state, :timer, :peers)
 
   def initialize(datacenter_name, ip)
-    self.datacenter_name = datacenter_name
+    @datacenter_name = datacenter_name
     @cfg_filename = 'configuration.txt'
-    @peers = {}
+    @peers = []
 
+    #Read configuration file
     begin
       file = File.open(@cfg_filename,'r')
       puts "Found configuration file #{@cfg_filename}"
@@ -18,25 +19,28 @@ class DataCenter
       file.readlines.each do |line|
         dc_name = line.strip
         if dc_name != self.datacenter_name
-          @peers[dc_name] = Peer.new(dc_name)
+          @peers << Peer.new(dc_name)
+        else
+
         end
 
-      end
 
+      end
     rescue
       return false
     end
+    # Setup MQ
+    @conn = Bunny.new(:hostname => ip)
+    @conn.start
+    @ch = @conn.create_channel
+
+    @append_entries_direct_exchange = @ch.direct('AppendEntriesDirect')
+    @append_entries_queue = @ch.queue("#{self.datacenter_name}_append_entries_queue")
+
 
 
     self.log = Log.new(datacenter_name)
-
-
     self.current_term = 1
-    @conn = Bunny.new(:hostname => ip)
-    @conn.start
-
-    @ch = @conn.create_channel
-    @msg_queue = @ch.queue('hello')
 
     @voted_for = nil
     @commit_index = 0
@@ -49,13 +53,68 @@ class DataCenter
   end
 
   def run
-    puts 'start'
-    t1 = Thread.new do
-      while true
-
+    puts "#{@datacenter_name} start"
+    #For each peer, leader start a thread doing rpc appendEntries
+    if @datacenter_name == 'dc1'
+      threads = []
+      @peers.each do |peer|
+        threads << Thread.new do
+          while true
+            begin
+              response = nil
+              Timeout.timeout(5) do
+                response = rpc_appendEntries(peer)
+              end
+              puts "Peer #{peer.name} respond to appendEntries rpc with: #{response}"
+            rescue Timeout::Error
+              # puts e.to_s
+              puts "Peer #{peer.name} cannot be reached by appendEntries rpc"
+              next
+            end
+          end
+        end
+      end
+      threads.each do |thread|
+        thread.join
+      end
+    else
+      ##Listen to appendEntries rpc
+      @append_entries_queue.bind(@append_entries_direct_exchange,
+                                 :routing_key=> "#{self.datacenter_name}_append_entries_queue")
+      @append_entries_queue.subscribe do |delivery_info, properties, payload|
+        @append_entries_direct_exchange.publish("#{@name} received appendEntries", :routing_key => properties.reply_to, :correlation_id => properties.correlation_id)
       end
     end
-    t1.join
+
+
+
+  end
+
+
+  def rpc_appendEntries(peer)
+    ch = @conn.create_channel
+    reply_queue  = ch.queue('', :exclusive => true)
+    call_id = Misc::generate_uuid
+    reply_queue.bind(@append_entries_direct_exchange, :routing_key => reply_queue.name)
+
+    @append_entries_direct_exchange.publish("Append Entries",
+                                            :routing_key => peer.append_entries_queue_name,
+                                            :correlation_id => call_id,
+                                            :reply_to=>reply_queue.name)
+
+    #Wait for response
+    response_result = nil
+    responded = false
+    while true
+      reply_queue.subscribe do |delivery_info, properties, payload|
+        if properties[:correlation_id] == call_id
+          response_result = payload.to_s
+          responded = true
+        end
+      end
+      break if responded
+    end
+    response_result
   end
 =begin
   def run
@@ -139,7 +198,7 @@ class DataCenter
 end
 
 
-class VoteTimer < Timer
+class VoteTimer < Misc::Timer
 
   attr_accessor(:last_timestamp, :timeout_milli)
 
@@ -150,7 +209,7 @@ class VoteTimer < Timer
 
 end
 
-class HeartbeatTimer < Timer
+class HeartbeatTimer < Misc::Timer
 
   attr_accessor(:last_timestamp, :timeout_milli)
 
@@ -351,10 +410,11 @@ end
 
 
 class Peer
-  attr_accessor(:name)
+  attr_accessor(:name, :append_entries_queue_name)
 
   def initialize(name)
-    self.name = name
+    @name = name
+    @append_entries_queue_name = "#{self.name}_append_entries_queue"
 
     @next_index = 1
     @match_index = 0
@@ -376,8 +436,11 @@ end
 
 =end
 
-dc1 = DataCenter.new('dc1', '169.231.10.109')
-dc1.run
-
 dc2 = DataCenter.new('dc2', '169.231.10.109')
 dc2.run
+
+dc3 = DataCenter.new('dc3', '169.231.10.109')
+dc3.run
+
+dc1 = DataCenter.new('dc1', '169.231.10.109')
+dc1.run
