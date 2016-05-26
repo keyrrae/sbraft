@@ -50,7 +50,6 @@ class DataCenter
     #Last step, run state machine
     #Create state context
     @state_context = StateContext.new(self,is_leader)
-
   end
 
 
@@ -70,13 +69,20 @@ class DataCenter
         @state_context.respond_to_vote_request delivery_info, properties, payload
       end
 
-      loop do
-        sleep(0.05)
-      end
-
-      Thread.new do
+      #Run state machine
+      t = Thread.new do
         @state_context.run
       end
+
+      t.join
+
+      # loop do
+      #   sleep(0.05)
+      # end
+
+
+
+
   end
 
   # AppendEntries RPC
@@ -137,11 +143,11 @@ t2 = Thread.new do
   dc2.run
 end
 
-dc3 = DataCenter.new('dc3','169.231.10.109')
-t3 = Thread.new do
-  dc3.run
-end
+# dc3 = DataCenter.new('dc3','169.231.10.109')
+# t3 = Thread.new do
+#   dc3.run
+# end
 
 t1.join
 t2.join
-t3.join
+# t3.join
