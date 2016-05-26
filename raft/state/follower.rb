@@ -14,11 +14,15 @@ class Follower < State
     t1.join
   end
 
-  def respond_to_append_entries(append_entries_rpc)
-    raise 'Not implemented'
+  def respond_to_append_entries(delivery_info, properties, payload)
+    @election_timer.reset_timer
+    @datacenter.append_entries_direct_exchange.publish("#{@datacenter.name} received appendEntries",
+                                                       :routing_key => properties.reply_to,
+                                                       :correlation_id => properties.correlation_id)
+
   end
 
-  def respond_to_vote_request(vote_request_rpc)
+  def respond_to_vote_request(delivery_info, properties, payload)
     raise 'Not implemented'
   end
 

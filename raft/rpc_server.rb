@@ -80,11 +80,11 @@ class Timer
 
   attr_accessor(:last_timestamp, :timeout_milli)
 
-  def initialize
-    self.timeout_milli = rand(1000..3000)
-    self.last_timestamp = Time.now
-  end
 
+  def initialize(*time_in_mill)
+    @timeout_milli = time_in_mill.nil? ? rand(1000..3000) : time_in_mill
+    @last_timestamp = Time.now
+  end
   def timeout?
     temp = Time.now
     if time_diff_milli(@last_timestamp, temp) > @timeout_milli then

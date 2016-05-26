@@ -1,6 +1,8 @@
 module Misc
+  require 'thread'
   class Timer
     attr_accessor(:last_timestamp, :timeout_milli)
+    mutex = Mutex.new
 
     def initialize(timeout)
       self.timeout_milli = timeout
@@ -13,44 +15,27 @@ module Misc
     end
 
     def reset_timer
-      self.last_timestamp = Time.now
+      #Avoid read timeout when resetting
+      mutex.synchronize {
+        self.last_timestamp = Time.now
+      }
     end
 
     def timeout?
-      temp = Time.now
-      if time_diff_milli(@last_timestamp, temp) > self.timeout_milli then
-        @last_timestamp = temp
-        true
-      else
-        false
-      end
+      mutex.synchronize {
+        temp = Time.now
+        if time_diff_milli(@last_timestamp, temp) > self.timeout_milli then
+          @last_timestamp = temp
+          true
+        else
+          false
+        end
+      }
     end
 
     def time_diff_milli(start, finish)
       (finish - start) * 1000.0
     end
-  end
-
-  class VoteTimer < Timer
-
-    attr_accessor(:last_timestamp, :timeout_milli)
-
-    def initialize
-      self.timeout_milli = rand(start..stop)
-      self.last_timestamp = Time.now
-    end
-
-  end
-
-  class HeartbeatTimer < Timer
-
-    attr_accessor(:last_timestamp, :timeout_milli)
-
-    def initialize(timeout_milli)
-      super
-      self.timeout_milli = timeout_milli
-    end
-
   end
 
   def self.generate_uuid
@@ -62,6 +47,8 @@ module Misc
 
   #Constants
   ELECTION_TIMEOUT = 10.freeze
-
+  RPC_TIMEOUT = 500.freeze
+  APPEND_ENTRIES_DIRECT_EXCHANGE = 'AppendEntriesDirect'.freeze
+  VOTE_REQUEST_DIRECT_EXCHANGE = 'VoteRequestDirect'.freeze
 
 end

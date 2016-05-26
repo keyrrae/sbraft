@@ -1,11 +1,11 @@
 require './state'
 class Leader < State
 
+  attr_accessor :heartbeat_timer
+
   def initialize(datacenter_context, state_context)
     super(datacenter_context, state_context)
-    @heart_timer = Timer.new(50)
-    # TODO: send initial empty AppendEntries RPCs
-
+    @heartbeat_timer = Timer.new(Misc::)
   end
 
 
@@ -15,43 +15,45 @@ class Leader < State
     @datacenter.peers.each do |peer|
       threads << Thread.new do
         loop do
-          begin
-            response = nil
-            Timeout.timeout(5) do
-              response = @datacenter.rpc_appendEntries(peer)
+          #If RPC timeout, send another wave of AppendEntries
+          if @rpc_timeout_timer.timeout?
+            begin
+              response = nil
+              Timeout.timeout(5) do
+                response = @datacenter.rpc_appendEntries(peer)
+              end
+              puts "Peer #{peer.name} respond to appendEntries rpc with: #{response}"
+            rescue Timeout::Error
+              # puts e.to_s
+              puts "Peer #{peer.name} cannot be reached by appendEntries rpc"
+              next
             end
-            puts "Peer #{peer.name} respond to appendEntries rpc with: #{response}"
-          rescue Timeout::Error
-            # puts e.to_s
-            puts "Peer #{peer.name} cannot be reached by appendEntries rpc"
-            next
           end
         end
       end
-    end
     threads.each do |thread|
       thread.join
     end
 
 
 
-    t1 = Thread.new do
-      while true
-        if @election_timer.timeout?
-          @state_context.set_state(Candidate.new(@datacenter, @state_context))
-          break
-        end
-      end
-
-    end
-
-    t2 = Thread.new do
-      while true
-        if @heart_timer.timeout?
-          # TODO: send requestVote RPC to peers
-        end
-      end
-    end
+    # t1 = Thread.new do
+    #   while true
+    #     if @election_timer.timeout?
+    #       @state_context.set_state(Candidate.new(@datacenter, @state_context))
+    #       break
+    #     end
+    #   end
+    #
+    # end
+    #
+    # t2 = Thread.new do
+    #   while true
+    #     if @heart_timer.timeout?
+    #       # TODO: send requestVote RPC to peers
+    #     end
+    #   end
+    # end
 
     t1.join
     t2.join
@@ -72,11 +74,11 @@ class Leader < State
   #  of matchIndex[i] ≥ N, and log[N].term == currentTerm:
   #      set commitIndex = N (§5.3, §5.4).
 
-  def respond_to_append_entries(append_entries_rpc)
+  def respond_to_append_entries(delivery_info, properties, payload)
     raise 'Not implemented'
   end
 
-  def respond_to_vote_request(vote_request_rpc)
+  def respond_to_vote_request(delivery_info, properties, payload)
     raise 'Not implemented'
   end
 

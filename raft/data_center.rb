@@ -15,7 +15,10 @@ class DataCenter
                 :state,
                 :timer,
                 :peers,
-                :store)
+                :store,
+                :append_entries_direct_exchange,
+                :vote_request_direct_exchange
+  )
 
   def initialize(datacenter_name, ip)
     @datacenter_name = datacenter_name
@@ -35,16 +38,16 @@ class DataCenter
     @ch = @conn.create_channel
 
     # Bind append_entries_queue to AppendEntriesDirect
-    @append_entries_direct_exchange = @ch.direct('AppendEntriesDirect')
+    @append_entries_direct_exchange = @ch.direct(Misc::APPEND_ENTRIES_DIRECT_EXCHANGE)
     @append_entries_queue = @ch.queue("#{self.datacenter_name}_append_entries_queue")
     @append_entries_queue.bind(@append_entries_direct_exchange,
                                :routing_key=> @append_entries_queue.name)
 
     # Bind request_vote_queue to RequestVoteDirect
-    @request_vote_direct_exchange = @ch.direct('RequestVoteDirect')
-    @request_vote_queue = @ch.queue("#{self.datacenter_name}_request_vote_queue")
-    @request_vote_queue.bind(@request_vote_direct_exchange,
-                             :routing_key=> @request_vote_queue.name)
+    @vote_request_direct_exchange = @ch.direct(Misc::VOTE_REQUEST_DIRECT_EXCHANGE)
+    @vote_request_queue = @ch.queue("#{self.datacenter_name}_vote_request_queue")
+    @vote_request_queue.bind(@vote_request_direct_exchange,
+                             :routing_key=> @vote_request_queue.name)
 
     # self.log = Log.new(datacenter_name)
 
@@ -60,11 +63,11 @@ class DataCenter
     puts "#{@datacenter_name} start"
     #Listen to AppendEntries
     @append_entries_queue.subscribe do |delivery_info, properties, payload|
-      @state_context.respond_to_append_entries  [delivery_info, properties, payload]
+      @state_context.respond_to_append_entries  delivery_info, properties, payload
     end
     #Listen to RequestVote
-    @request_vote_queue.subscribe do |delivery_info, properties, payload|
-      @state_context.respond_to_vote_request [delivery_info, properties, payload]
+    @vote_request_queue.subscribe do |delivery_info, properties, payload|
+      @state_context.respond_to_vote_request delivery_info, properties, payload
     end
 
   end
@@ -75,7 +78,7 @@ class DataCenter
     reply_queue  = ch.queue('', :exclusive => true)
     call_id = Misc::generate_uuid
     reply_queue.bind(@append_entries_direct_exchange, :routing_key => reply_queue.name)
-    @append_entries_direct_exchange.publish("Append Entries",
+    @append_entries_direct_exchange.publish('Append Entries',
                                             :routing_key => peer.append_entries_queue_name,
                                             :correlation_id => call_id,
                                             :reply_to=>reply_queue.name)
@@ -98,12 +101,17 @@ end
 
 
 class Peer
-  attr_accessor(:name, :append_entries_queue_name)
+  attr_accessor(:name,
+                :append_entries_queue_name,
+                :next_index,
+                :match_index,
+                :rpc_due_timer, #For checking if RPC is timed out
+  )
 
   def initialize(name)
     @name = name
     @append_entries_queue_name = "#{self.name}_append_entries_queue"
-
+    @vote_request_queue_name = "#{self.name}_vote_request_queue"
     @next_index = 1
     @match_index = 0
     @vote_granted = false
