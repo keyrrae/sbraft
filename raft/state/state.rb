@@ -1,3 +1,5 @@
+require_relative './state_module'
+
 class State
   attr_accessor :datacenter, :state_context, :election_timer
 
@@ -5,8 +7,7 @@ class State
     @datacenter = datacenter
     @state_context = state_context
     #Timer for election
-    @election_timer = Timer.new
-    run
+    @election_timer = Misc::Timer.new(Misc::ELECTION_TIMEOUT)
   end
 
   def respond_to_append_entries(append_entries_rpc)

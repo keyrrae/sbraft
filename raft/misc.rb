@@ -1,30 +1,40 @@
 module Misc
   require 'thread'
   class Timer
-    attr_accessor(:last_timestamp, :timeout_milli)
-    mutex = Mutex.new
+    attr_accessor(:last_timestamp, :timeout_in_sec)
+    @mutex = Mutex.new
 
     def initialize(timeout)
-      self.timeout_milli = timeout
-      self.last_timestamp = Time.now
+      @timeout_in_sec = timeout
+      @last_timestamp = Time.now
+      @mutex = Mutex.new
     end
 
     def set_timeout(timeout)
-      self.timeout_milli = timeout
+      self.timeout_in_sec = timeout
       self.last_timestamp = Time.now
     end
 
+
     def reset_timer
       #Avoid read timeout when resetting
-      mutex.synchronize {
+      @mutex.synchronize {
+        freeze = false
         self.last_timestamp = Time.now
       }
     end
 
+    # # Freeze the timer. Call to timeout? will return false util reset_timer is called
+    # # This is used when doing AppendEntries RPC. When there is a callback received from the Peer.
+    # # Caller freeze the RPC timer for that Peer and will reset the timer when it's HeartbeatTimer timeout (Another round of AppendEntries)
+    # def freeze
+    #   freeze = true;
+    # end
+
     def timeout?
-      mutex.synchronize {
+      @mutex.synchronize {
         temp = Time.now
-        if time_diff_milli(@last_timestamp, temp) > self.timeout_milli then
+        if time_diff_in_sec(@last_timestamp, temp) > self.timeout_in_sec then
           @last_timestamp = temp
           true
         else
@@ -33,22 +43,25 @@ module Misc
       }
     end
 
-    def time_diff_milli(start, finish)
-      (finish - start) * 1000.0
+    def time_diff_in_sec(start, finish)
+       finish - start
     end
   end
 
   def self.generate_uuid
-    # very naive but good enough for code
-    # examples
     "#{rand}#{rand}#{rand}"
   end
 
 
   #Constants
-  ELECTION_TIMEOUT = 10.freeze
-  RPC_TIMEOUT = 500.freeze
+  ELECTION_TIMEOUT = 1.freeze
+  #For both AppendEntries RPC and Request Vote RPC. This is used by each Peer object for a Datacenter. In second
+  RPC_TIMEOUT = 0.5.freeze
+  #For calculating when to send an AppendEntries request to peers. This is used by Datacenter object. Only Leader need this. In mill
+  HEARTBEAT_TIMEOUT = 0.5.freeze
+  #AppendEntries Exchange name
   APPEND_ENTRIES_DIRECT_EXCHANGE = 'AppendEntriesDirect'.freeze
+  #VoteRequest Exchange name
   VOTE_REQUEST_DIRECT_EXCHANGE = 'VoteRequestDirect'.freeze
 
 end

@@ -1,4 +1,4 @@
-
+require_relative './state_module'
 
 class Candidate < State
   def initialize(datacenter_context, state_context)

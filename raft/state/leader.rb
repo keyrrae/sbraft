@@ -1,13 +1,6 @@
-require './state'
+require_relative './state_module'
+
 class Leader < State
-
-  attr_accessor :heartbeat_timer
-
-  def initialize(datacenter_context, state_context)
-    super(datacenter_context, state_context)
-    @heartbeat_timer = Timer.new(Misc::)
-  end
-
 
   def run
     # As leader, start threads for AppendEntries RPC
@@ -15,25 +8,32 @@ class Leader < State
     @datacenter.peers.each do |peer|
       threads << Thread.new do
         loop do
-          #If RPC timeout, send another wave of AppendEntries
-          if @rpc_timeout_timer.timeout?
+          #If HeartBeatTimer timeout, send another wave of AppendEntries
+          if peer.heartbeat_timer.timeout?
+            #Reset timer first
+            peer.heartbeat_timer.reset_timer
             begin
               response = nil
-              Timeout.timeout(5) do
+              Timeout.timeout(Misc::RPC_TIMEOUT) do
                 response = @datacenter.rpc_appendEntries(peer)
               end
               puts "Peer #{peer.name} respond to appendEntries rpc with: #{response}"
             rescue Timeout::Error
               # puts e.to_s
               puts "Peer #{peer.name} cannot be reached by appendEntries rpc"
-              next
             end
+          else
+            sleep(0.01)
           end
         end
       end
+    end
     threads.each do |thread|
       thread.join
     end
+  end
+
+
 
 
 
@@ -54,10 +54,9 @@ class Leader < State
     #     end
     #   end
     # end
-
-    t1.join
-    t2.join
-  end
+    #
+    # t1.join
+    # t2.join
   #
   #Upon election: send initial empty AppendEntries RPCs
   #(heartbeat) to each server; repeat during idle periods to
