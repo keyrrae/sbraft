@@ -30,10 +30,38 @@ module Misc
       (finish - start) * 1000.0
     end
   end
-  public
+
+  class VoteTimer < Timer
+
+    attr_accessor(:last_timestamp, :timeout_milli)
+
+    def initialize
+      self.timeout_milli = rand(start..stop)
+      self.last_timestamp = Time.now
+    end
+
+  end
+
+  class HeartbeatTimer < Timer
+
+    attr_accessor(:last_timestamp, :timeout_milli)
+
+    def initialize(timeout_milli)
+      super
+      self.timeout_milli = timeout_milli
+    end
+
+  end
+
   def self.generate_uuid
     # very naive but good enough for code
     # examples
     "#{rand}#{rand}#{rand}"
   end
+
+
+  #Constants
+  ELECTION_TIMEOUT = 10.freeze
+
+
 end
