@@ -1,7 +1,6 @@
-
+require 'pstore'
 module Config
-  require 'pstore'
-  def read_config_and_storage
+  def read_config
     @cfg_filename = 'configuration.txt'
     file = File.open(@cfg_filename, 'r')
     puts "Read configuration file #{@cfg_filename}"
@@ -12,6 +11,9 @@ module Config
       end
     end
 
+  end
+
+  def read_storage
     #Read Pstore file from persistent storage if there is one.
     if File.exist? "#{@name}.pstore"
       puts 'Found previous storage. Read PStore'
@@ -19,7 +21,7 @@ module Config
       @store.transaction do
         @current_term = @store[:current_term]
         @voted_for = @store[:voted_for]
-        @log = @store[:log]
+        @logs = @store[:logs]
       end
     else
       puts 'Previous Storage not found. Create one.'
@@ -27,7 +29,7 @@ module Config
       @store.transaction do
         @store[:current_term] = 1
         @store[:voted_for] = nil
-        @store[:log] = []
+        @store[:logs] = []
       end
     end
   end

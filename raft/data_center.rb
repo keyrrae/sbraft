@@ -1,15 +1,16 @@
 require 'bunny'
 require 'pstore'
-require_relative './log'
 require_relative './misc'
 require_relative './config'
+require_relative './storage/log_container'
 require_relative './state/state_module'
 
 class DataCenter
   include Config
+  include LogContainer
+
   attr_accessor(:name,
                 :quorum,
-                :log,
                 :current_term,
                 :current_state,
                 :peers,
@@ -22,12 +23,13 @@ class DataCenter
     @name = name
     @current_term = 1
     @voted_for = nil
-    @log = Log.new(name)
+    @logs = []
     @peers = []
 
 
     #Read configuration and storage
-    read_config_and_storage
+    read_config
+    read_storage
 
     # Setup MQ
     @conn = Bunny.new(:hostname => ip)
@@ -173,6 +175,11 @@ class Peer
   end
 end
 
+
+
+
+
+
 # dc1 = DataCenter.new('dc1','169.231.10.109',true)
 # t1= Thread.new do
 #   dc1.run
@@ -182,6 +189,9 @@ dc2 = DataCenter.new('dc2','169.231.10.109')
 t2 = Thread.new do
   dc2.run
 end
+
+# dc2.add_log_entry(1 ,'fuck the whole')
+dc2.print_log
 
 # dc3 = DataCenter.new('dc3','169.231.10.109')
 # t3 = Thread.new do
