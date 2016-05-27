@@ -3,7 +3,7 @@ require_relative './state_module'
 class Follower < State
 
   def run
-    puts "#{@datacenter.datacenter_name}'s Follower state start"
+    puts "#{@datacenter.name}'s Follower state start"
     loop do
       #Break out the loop and state come to end if state got killed
       break if @status == Misc::KILLED_STATE
@@ -13,7 +13,7 @@ class Follower < State
         @datacenter.change_state (Candidate.new(@datacenter))
       end
 
-      puts "#{@datacenter.datacenter_name} is in Follower state"
+      puts "#{@datacenter.name} is in Follower state"
 
       sleep(Misc::STATE_LOOP_INTERVAL)
     end
@@ -22,7 +22,7 @@ class Follower < State
 
   def respond_to_append_entries(delivery_info, properties, payload)
     @election_timer.reset_timer
-    @datacenter.append_entries_direct_exchange.publish("#{@datacenter.datacenter_name} received appendEntries",
+    @datacenter.append_entries_direct_exchange.publish("#{@datacenter.name} received appendEntries",
                                                        :routing_key => properties.reply_to,
                                                        :correlation_id => properties.correlation_id)
 

@@ -66,6 +66,11 @@ module Misc
   #VoteRequest Exchange name
   REQUEST_VOTE_DIRECT_EXCHANGE = 'RequestVoteDirect'.freeze
 
+  #For state
   RUNNING_STATE = 'Running'
   KILLED_STATE = 'Killed'
+
+  #For log entry
+  PREPARE = 'Prepare'
+  COMMITTED = 'Committed'
 end

@@ -15,19 +15,25 @@ class Log
     @log_array.length
   end
 
-  def add_log(log)
-    @log_array << log
+  def add_log_entry(term, message)
+    @log_array << Entry.new(term, Misc::PREPARE, message)
+  end
+
+  def commit_log_entry(index)
+    @log_array[index].type = Misc::COMMITTED
   end
 
   def print
-    @log_array.each do |log|
-      puts "#{log.term} #{log.index} #{log.message}"
+    index = 0
+    @log_array.each do |log_entry|
+      puts "#{index} #{log_entry}"
+      index = index + 1
     end
   end
 
   def retrieve_log_from_disk
     #Read Pstore file from persistent storage if there is one.
-    if File.exist? "#{@datacenter_name}.pstore"
+    if File.exist? "#{@name}.pstore"
       puts 'Found previous storage. Read PStore'
       @store = PStore.new("#{datacenter_name}.pstore")
       @store.transaction do
@@ -54,22 +60,8 @@ class Log
     end
   end
 
-  def print_log
-
-    # log is empty
-    if @log_array == []
-      puts 'EMPTY'
-    else
-      puts "term\tcommitted\tmessage"
-      @log_array.each do |log_entry|
-        puts "#{log_entry}"
-      end
-    end
-  end
-
   def add_entry(term, type, message)
     if type == :prepare
-
       @log_array << Entry.new(term, type, message)
     elsif type == :accepted
       # TODO : update condition

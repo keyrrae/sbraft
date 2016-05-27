@@ -12,7 +12,7 @@ class Candidate < State
   end
 
   def run
-    puts "#{@datacenter.datacenter_name} is candidate state start"
+    puts "#{@datacenter.name} is candidate state start"
     loop do
       #Break out the loop and state come to end if state got killed
       break if @status == Misc::KILLED_STATE
@@ -20,7 +20,7 @@ class Candidate < State
       sleep(Misc::STATE_LOOP_INTERVAL)
     end
 
-    puts "#{@datacenter.datacenter_name} is candidate state end"
+    puts "#{@datacenter.name} is candidate state end"
 
   end
 

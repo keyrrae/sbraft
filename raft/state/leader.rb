@@ -3,7 +3,7 @@ require_relative './state_module'
 class Leader < State
 
   def run
-    puts "#{@datacenter.datacenter_name}'s Leader state start"
+    puts "#{@datacenter.name}'s Leader state start"
     # As leader, start threads for AppendEntries RPC
     threads = []
     @datacenter.peers.each do |peer|
@@ -22,7 +22,6 @@ class Leader < State
               end
               puts "Peer #{peer.name} respond to appendEntries rpc with: #{response}"
             rescue Timeout::Error
-              # puts e.to_s
               puts "Peer #{peer.name} cannot be reached by appendEntries rpc"
             end
           else
@@ -34,7 +33,7 @@ class Leader < State
     threads.each do |thread|
       thread.join
     end
-    puts "#{@datacenter.datacenter_name}'s Leader state end"
+    puts "#{@datacenter.name}'s Leader state end"
   end
 
 

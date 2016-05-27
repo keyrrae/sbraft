@@ -1,9 +1,9 @@
 require 'pstore'
 module Test
-  @datacenter_name = "shit"
-  if File.exist? "#{@datacenter_name}.pstore"
+  @name = "shit"
+  if File.exist? "#{@name}.pstore"
     puts 'Found previous storage. Read PStore'
-    @store = PStore.new("#{@datacenter_name}.pstore")
+    @store = PStore.new("#{@name}.pstore")
     @store.transaction do
       @current_term = @store[:current_term]
       @voted_for = @store[:voted_for]
@@ -15,7 +15,7 @@ module Test
     puts @log[0][:message]
   else
     puts 'Previous Storage not found. Create one.'
-    @store = PStore.new("#{@datacenter_name}.pstore")
+    @store = PStore.new("#{@name}.pstore")
     @store.transaction do
       @store[:current_term] = 1
       @store[:voted_for] = 1
