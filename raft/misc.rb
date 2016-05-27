@@ -54,14 +54,18 @@ module Misc
 
 
   #Constants
-  ELECTION_TIMEOUT = 1.freeze
+  ELECTION_TIMEOUT = 3.freeze
   #For both AppendEntries RPC and Request Vote RPC. This is used by each Peer object for a Datacenter. In second
-  RPC_TIMEOUT = 0.5.freeze
+  RPC_TIMEOUT = 2.freeze
   #For calculating when to send an AppendEntries request to peers. This is used by Datacenter object. Only Leader need this. In mill
-  HEARTBEAT_TIMEOUT = 0.5.freeze
+  HEARTBEAT_TIMEOUT = 2.freeze
+  #The interval for each state main loop
+  STATE_LOOP_INTERVAL = 1.freeze
   #AppendEntries Exchange name
   APPEND_ENTRIES_DIRECT_EXCHANGE = 'AppendEntriesDirect'.freeze
   #VoteRequest Exchange name
-  VOTE_REQUEST_DIRECT_EXCHANGE = 'VoteRequestDirect'.freeze
+  REQUEST_VOTE_DIRECT_EXCHANGE = 'RequestVoteDirect'.freeze
 
+  RUNNING_STATE = 'Running'
+  KILLED_STATE = 'Killed'
 end

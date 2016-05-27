@@ -1,0 +1,2 @@
+class AppendEntriesMessage
+end

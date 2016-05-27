@@ -1,43 +1,44 @@
 
 class Log
-
   def initialize(datacenter_name)
     @filename = "raft-#{datacenter_name}.log"
     @log_array = []
     @index = 0
-    retrieve_log_from_disk
-
   end
 
-  def get_last_term
+  def last_term
+    return 0 if @log_array.length == 0
     @log_array.last.term
   end
 
-  def get_last_index
-    @log_array.length + 1
+  def last_index
+    @log_array.length
+  end
+
+  def add_log(log)
+    @log_array << log
+  end
+
+  def print
+    @log_array.each do |log|
+      puts "#{log.term} #{log.index} #{log.message}"
+    end
   end
 
   def retrieve_log_from_disk
-    begin
-      file = File.open(@filename,'r')
-      puts "Found existing log #{@filename}"
-
-      file.readlines.each do |line|
-        parsed_line = line.strip.split(' ', 2)
-
-        term = parsed_line[0].to_i
-
-        type = parsed_line[1].to_i == 0 ? :prepare : :accepted
-
-        entry = Entry.new(term, type, parsed_line[2])
-        @log_array << entry
-        @index += 1
+    #Read Pstore file from persistent storage if there is one.
+    if File.exist? "#{@datacenter_name}.pstore"
+      puts 'Found previous storage. Read PStore'
+      @store = PStore.new("#{datacenter_name}.pstore")
+      @store.transaction do
+        @log = @store[:log]
       end
-
-      return true
-
-    rescue
-      return false
+    else
+      puts 'Previous Storage not found. Create one.'
+      @store = PStore.new("#{datacenter_name}.pstore")
+      @store.transaction do
+        @store[:log] = []
+      end
     end
   end
 

@@ -3,14 +3,17 @@ require_relative './state_module'
 class Leader < State
 
   def run
+    puts "#{@datacenter.datacenter_name}'s Leader state start"
     # As leader, start threads for AppendEntries RPC
     threads = []
     @datacenter.peers.each do |peer|
       threads << Thread.new do
         loop do
+          #Break out the loop and state come to end if state got killed
+          break if @status == Misc::KILLED_STATE
+
           #If HeartBeatTimer timeout, send another wave of AppendEntries
           if peer.heartbeat_timer.timeout?
-            #Reset timer first
             peer.heartbeat_timer.reset_timer
             begin
               response = nil
@@ -23,7 +26,7 @@ class Leader < State
               puts "Peer #{peer.name} cannot be reached by appendEntries rpc"
             end
           else
-            sleep(0.01)
+            sleep(Misc::STATE_LOOP_INTERVAL)
           end
         end
       end
@@ -31,6 +34,7 @@ class Leader < State
     threads.each do |thread|
       thread.join
     end
+    puts "#{@datacenter.datacenter_name}'s Leader state end"
   end
 
 

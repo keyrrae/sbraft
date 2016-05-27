@@ -1,0 +1,3 @@
+class RequestVoteMessage
+
+end

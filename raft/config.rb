@@ -25,7 +25,6 @@ module Config
       puts 'Previous Storage not found. Create one.'
       @store = PStore.new("#{@datacenter_name}.pstore")
       @store.transaction do
-        @store = PStore.new("#{@datacenter_name}.pstore")
         @store[:current_term] = 1
         @store[:voted_for] = nil
         @store[:log] = []

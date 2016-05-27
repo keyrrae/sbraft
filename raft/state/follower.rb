@@ -3,20 +3,21 @@ require_relative './state_module'
 class Follower < State
 
   def run
-    # t1 = Thread.new do
-    #   # Wait for timeout
-    #   while true
-    #     if @election_timer.timeout?
-    #       puts 'timeout'
-    #       @state_context.set_state(Candidate.new(@datacenter, @state_context))
-    #       break
-    #     end
-    #   end # while
-    # end
-    # t1.join
+    puts "#{@datacenter.datacenter_name}'s Follower state start"
     loop do
-      sleep(0.05)
+      #Break out the loop and state come to end if state got killed
+      break if @status == Misc::KILLED_STATE
+
+      if @election_timer.timeout?
+        puts 'Follower time out. To candidate state'
+        @datacenter.change_state (Candidate.new(@datacenter))
+      end
+
+      puts "#{@datacenter.datacenter_name} is in Follower state"
+
+      sleep(Misc::STATE_LOOP_INTERVAL)
     end
+
   end
 
   def respond_to_append_entries(delivery_info, properties, payload)
