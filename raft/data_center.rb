@@ -1,5 +1,6 @@
 require 'bunny'
 require 'pstore'
+require 'json'
 require_relative './misc'
 require_relative './config'
 require_relative './storage/log_container'
@@ -16,14 +17,22 @@ class DataCenter
                 :peers,
                 :store,
                 :append_entries_direct_exchange,
-                :vote_request_direct_exchange
+                :request_vote_direct_exchange
   )
 
   def initialize(name, ip,is_leader=false)
     @name = name
+
+    #Persistent State
     @current_term = 1
     @voted_for = nil
     @logs = []
+
+    #Volatile State
+    @commit_index = 0
+    @last_applied = 0
+
+    #Volatile State on Leader
     @peers = []
 
 
@@ -63,7 +72,7 @@ class DataCenter
   end
 
   def stop_state
-    @current_state.stop
+    @current_state.status = Misc::KILLED_STATE
   end
 
   def start_state
@@ -129,13 +138,16 @@ class DataCenter
     ch = @conn.create_channel
     reply_queue  = ch.queue('', :exclusive => true)
     call_id = Misc::generate_uuid
-    reply_queue.bind(@append_entries_direct_exchange, :routing_key => reply_queue.name)
+    reply_queue.bind(@request_vote_direct_exchange, :routing_key => reply_queue.name)
+
     request_vote_message = {}
     request_vote_message[:term] = @current_term
     request_vote_message[:candidate_name] = @name
-    # request_vote_message[:last_log_index] = @
-    @append_entries_direct_exchange.publish('Append Entries',
-                                            :routing_key => peer.append_entries_queue_name,
+    request_vote_message[:last_log_index] = last_log_index
+    request_vote_message[:last_log_term] = last_log_term
+
+    @request_vote_direct_exchange.publish(request_vote_message.to_json,
+                                            :routing_key => peer.request_vote_queue_name,
                                             :correlation_id => call_id,
                                             :reply_to=>reply_queue.name)
     response_result = nil
@@ -158,15 +170,17 @@ end
 class Peer
   attr_accessor(:name,
                 :append_entries_queue_name,
+                :request_vote_queue_name,
                 :next_index,
                 :match_index,
+                :vote_granted,
                 :heartbeat_timer
   )
 
   def initialize(name)
     @name = name
     @append_entries_queue_name = "#{self.name}_append_entries_queue"
-    @vote_request_queue_name = "#{self.name}_vote_request_queue"
+    @request_vote_queue_name = "#{self.name}_request_vote_queue"
     @next_index = 1
     @match_index = 0
     @vote_granted = false
@@ -190,8 +204,14 @@ t2 = Thread.new do
   dc2.run
 end
 
+# sleep(1)
+#
+# dc3= DataCenter.new('dc3','169.231.10.109')
+# t3 = Thread.new do
+#   dc3.run
+# end
 # dc2.add_log_entry(1 ,'fuck the whole')
-dc2.print_log
+
 
 # dc3 = DataCenter.new('dc3','169.231.10.109')
 # t3 = Thread.new do

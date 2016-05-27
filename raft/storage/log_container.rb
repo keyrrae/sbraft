@@ -3,12 +3,12 @@ require 'pstore'
 
 module LogContainer
 
-  def last_term
+  def last_log_term
     return 0 if @logs.length == 0
     @logs.last.term
   end
 
-  def last_index
+  def last_log_index
     @logs.length
   end
 

@@ -4,7 +4,6 @@ require_relative '../misc'
 class Candidate < State
   def initialize(datacenter_context)
     super(datacenter_context)
-    @heart_timer = Misc::Timer.new(50)
     @datacenter.new_term  # Increment Datacenter Term
     @vote_count = 1 # Vote for self
     # TODO: send requestVote RPC to peers
@@ -12,15 +11,35 @@ class Candidate < State
   end
 
   def run
-    puts "#{@datacenter.name} is candidate state start"
-    loop do
-      #Break out the loop and state come to end if state got killed
-      break if @status == Misc::KILLED_STATE
+    puts "#{@datacenter.name} candidate state start"
+    threads = []
 
-      sleep(Misc::STATE_LOOP_INTERVAL)
+
+
+    @datacenter.peers.each do |peer|
+      threads << Thread.new do
+        loop do
+          begin
+            break if @status == Misc::KILLED_STATE
+            Timeout.timeout(Misc::RPC_TIMEOUT) do
+              response = @datacenter.rpc_requestVote(peer)
+            end
+
+            puts "Got vote from #{peer.name}"
+            break
+
+          rescue Timeout::Error
+            puts "RequestVoteRPC to #{peer.name} timeout"
+          end
+        end
+      end
     end
 
-    puts "#{@datacenter.name} is candidate state end"
+    threads.each do |thread|
+      thread.join
+    end
+
+    puts "#{@datacenter.name} candidate state end"
 
   end
 

@@ -14,10 +14,6 @@ class State
 
   #Need to be handled in specific code. When status is killed,
   #every Thread running in a State(e.g Leader sending AppendEntries) should exit
-  def stop
-    @status = Misc::KILLED_STATE
-  end
-
   def respond_to_append_entries(append_entries_rpc)
     raise 'Not implemented'
   end

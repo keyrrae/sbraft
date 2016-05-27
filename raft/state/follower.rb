@@ -9,14 +9,14 @@ class Follower < State
       break if @status == Misc::KILLED_STATE
 
       if @election_timer.timeout?
-        puts 'Follower time out. To candidate state'
+        puts "#{@datacenter.name} Follower time out. To candidate state"
         @datacenter.change_state (Candidate.new(@datacenter))
       end
 
-      puts "#{@datacenter.name} is in Follower state"
-
       sleep(Misc::STATE_LOOP_INTERVAL)
     end
+
+    puts "#{@datacenter.name}'s Follower state end"
 
   end
 
@@ -29,7 +29,12 @@ class Follower < State
   end
 
   def respond_to_vote_request(delivery_info, properties, payload)
-    raise 'Not implemented'
+    puts payload
+    @datacenter.request_vote_direct_exchange.publish("#{@datacenter.name} voted for you",
+                                                       :routing_key => properties.reply_to,
+                                                       :correlation_id => properties.correlation_id)
+
   end
+
 
 end
