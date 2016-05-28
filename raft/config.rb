@@ -22,6 +22,7 @@ module Config
         @current_term = @store[:current_term]
         @voted_for = @store[:voted_for]
         @logs = @store[:logs]
+        @commit_index = @store[:commit_index]
       end
     else
       puts 'Previous Storage not found. Create one.'
@@ -30,6 +31,7 @@ module Config
         @store[:current_term] = 1
         @store[:voted_for] = nil
         @store[:logs] = []
+        @store[:commit_index] = 0
       end
     end
   end

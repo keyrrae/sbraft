@@ -23,6 +23,30 @@ module LogContainer
     flush
   end
 
+  def committed_log_to_string
+    s = ''
+    index = 1
+    @logs.each do |log_entry|
+      if log_entry.type == Misc::COMMITTED
+        s = "#{s}\n#{index}\t#{log_entry.message}"
+        index += 1
+      end
+    end
+    s = "#{s}\n\n"
+    s
+  end
+
+  def all_log_to_string
+    s = ''
+    index = 1
+    @logs.each do |log_entry|
+      s = "#{s}#{index}\t#{log_entry}"
+      index += 1
+
+    end
+    s = "#{s}\n"
+    s
+  end
 
   def print_log
     index = 1
@@ -36,6 +60,7 @@ module LogContainer
     @store = PStore.new("#{@name}.pstore")
     @store.transaction do
       @store[:logs] = @logs
+      @store[:commit_index] = @commit_index
     end
   end
 
@@ -57,7 +82,7 @@ module LogContainer
     end
 
     def to_s
-      "#{self.term} #{self.type} #{self.message}\n"
+      "#{self.term}\t#{self.type}\t#{self.message}\n"
     end
 
   end

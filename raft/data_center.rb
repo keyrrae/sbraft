@@ -35,7 +35,6 @@ class DataCenter
     #Volatile State on Leader
     @peers = []
 
-
     #Read configuration and storage
     read_config
     read_storage
@@ -130,14 +129,15 @@ class DataCenter
 
   def respond_to_post(delivery_info, properties, payload)
 
+    # if I am the leader, I'll add the message to my logs
     if @current_state.is_a?(Leader)
       #@logs << payload.to_s
       add_log_entry(@current_term, payload)
-      puts @logs.to_s
-      puts "#{properties.correlation_id}"
+      puts "#{all_log_to_string}"
       @client_post_direct_exchange.publish('Successfully posted',
                                            :routing_key => properties.reply_to,
                                            :correlation_id => properties.correlation_id)
+    # if I am not the leader, I'll forward the message to leader
     elsif @current_state.is_a?(Follower)
       @client_post_direct_exchange.publish(payload,
                                            :routing_key => properties.reply_to,
@@ -146,7 +146,8 @@ class DataCenter
   end
 
   def respond_to_lookup(delivery_info, properties, payload)
-    @client_lookup_direct_exchange.publish(@logs.to_s,
+    # send my committed logs to client
+    @client_lookup_direct_exchange.publish(all_log_to_string,
                                            :routing_key => properties.reply_to,
                                            :correlation_id => properties.correlation_id)
 
@@ -262,7 +263,7 @@ end
 #   dc3.run
 # end
 
-# t1.join
+t1.join
 t2.join
 
 # t3.join
