@@ -57,6 +57,18 @@ class DataCenter
     @request_vote_queue.bind(@request_vote_direct_exchange,
                              :routing_key=> @request_vote_queue.name)
 
+    # Bind client_post_queue to ClientPostDirect
+    @client_post_direct_exchange = @ch.direct(Misc::CLIENT_POST_DIRECT_EXCHANGE)
+    @client_post_queue = @ch.queue("#{@name}_client_post_queue")
+    @client_post_queue.bind(@client_post_direct_exchange,
+                            :routing_key=> @client_post_queue.name)
+
+    # Bind client_lookup_queue to ClientLookupDirect
+    @client_lookup_direct_exchange = @ch.direct(Misc::CLIENT_LOOKUP_DIRECT_EXCHANGE)
+    @client_lookup_queue = @ch.queue("#{@name}_client_lookup_queue")
+    @client_lookup_queue.bind(@client_lookup_direct_exchange,
+                              :routing_key=> @client_lookup_queue.name)
+
     #Last step, run state machine
     #Create state context
     if is_leader
@@ -103,8 +115,40 @@ class DataCenter
         @current_state.respond_to_vote_request delivery_info, properties, payload
       end
 
+      @client_post_queue.subscribe do |delivery_info, properties, payload|
+        respond_to_post delivery_info, properties, payload
+      end
+
+      @client_lookup_queue.subscribe do |delivery_info, properties, payload|
+        respond_to_lookup delivery_info, properties, payload
+      end
+
       #Run state machine
       start_state
+
+  end
+
+  def respond_to_post(delivery_info, properties, payload)
+
+    if @current_state.is_a?(Leader)
+      #@logs << payload.to_s
+      add_log_entry(@current_term, payload)
+      puts @logs.to_s
+      puts "#{properties.correlation_id}"
+      @client_post_direct_exchange.publish('Successfully posted',
+                                           :routing_key => properties.reply_to,
+                                           :correlation_id => properties.correlation_id)
+    elsif @current_state.is_a?(Follower)
+      @client_post_direct_exchange.publish(payload,
+                                           :routing_key => properties.reply_to,
+                                           :correlation_id => properties.correlation_id)
+    end
+  end
+
+  def respond_to_lookup(delivery_info, properties, payload)
+    @client_lookup_direct_exchange.publish(@logs.to_s,
+                                           :routing_key => properties.reply_to,
+                                           :correlation_id => properties.correlation_id)
 
   end
 
@@ -194,10 +238,10 @@ end
 
 
 
-# dc1 = DataCenter.new('dc1','169.231.10.109',true)
-# t1= Thread.new do
-#   dc1.run
-# end
+dc1 = DataCenter.new('dc1','169.231.10.109',true)
+t1= Thread.new do
+  dc1.run
+end
 
 dc2 = DataCenter.new('dc2','169.231.10.109')
 t2 = Thread.new do

@@ -66,6 +66,14 @@ module Misc
   #VoteRequest Exchange name
   REQUEST_VOTE_DIRECT_EXCHANGE = 'RequestVoteDirect'.freeze
 
+  #ClientPost Exchange name
+  CLIENT_POST_DIRECT_EXCHANGE = 'ClientPostDirect'.freeze
+  #ClientLookup Exchange name
+  CLIENT_LOOKUP_DIRECT_EXCHANGE = 'ClientLookupDirect'.freeze
+
+  #Client Command line sleep time
+  CLIENT_CMD_SLEEP_TIME = 0.01.freeze
+
   #For state
   RUNNING_STATE = 'Running'
   KILLED_STATE = 'Killed'

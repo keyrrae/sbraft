@@ -5,17 +5,80 @@ require_relative 'misc'
 class Client
   attr_accessor(:request_queue, :counter)
 
-  def initialize(ip, queue_name)
+  def initialize(ip, dc_name)
+
     @conn = Bunny.new(:hostname => ip)
     @conn.start
-    @ch   = @conn.create_channel
+    @ch = @conn.create_channel
+
+    @dc_client_post_queue_name = "#{dc_name}_client_post_queue"
+    @dc_client_lookup_queue_name = "#{dc_name}_client_lookup_queue"
+
+    # ClientPostDirect
+    @client_post_direct_exchange = @ch.direct(Misc::CLIENT_POST_DIRECT_EXCHANGE)
+
+    # ClientLookupDirect
+    @client_lookup_direct_exchange = @ch.direct(Misc::CLIENT_LOOKUP_DIRECT_EXCHANGE)
+
     self.request_queue = []
     @leader = nil
     @servers = []
     self.counter = 1 # unique monotonically increasing id, 0 for lookup request
-    @msg_queue    = @ch.queue(queue_name)
     @cmd = CommandInterface.new(self)
-    run
+  end
+
+  #TODO
+  def client_post_rpc(message)
+    puts "#{message}"
+    ch = @conn.create_channel
+    reply_queue  = ch.queue('', :exclusive => true)
+    call_id = Misc::generate_uuid
+    puts "#{call_id}"
+    reply_queue.bind(@client_post_direct_exchange, :routing_key => reply_queue.name)
+
+    @client_post_direct_exchange.publish(message,
+                                         :routing_key => @dc_client_post_queue_name,
+                                         :correlation_id => call_id,
+                                         :reply_to => reply_queue.name)
+    response_result = nil
+    responded = false
+    while true
+      reply_queue.subscribe do |delivery_info, properties, payload|
+        if properties[:correlation_id] == call_id
+          response_result = payload.to_s
+          responded = true
+        end
+      end
+      break if responded
+    end
+    response_result
+
+  end
+
+  #TODO
+  def client_lookup_rpc
+    ch = @conn.create_channel
+    reply_queue  = ch.queue('', :exclusive => true)
+    call_id = Misc::generate_uuid
+    reply_queue.bind(@client_lookup_direct_exchange, :routing_key => reply_queue.name)
+
+    @client_lookup_direct_exchange.publish('',
+                                           :routing_key => @dc_client_lookup_queue_name,
+                                           :correlation_id => call_id,
+                                           :reply_to => reply_queue.name)
+    response_result = nil
+    responded = false
+    while true
+      reply_queue.subscribe do |delivery_info, properties, payload|
+        if properties[:correlation_id] == call_id
+          response_result = payload.to_s
+          responded = true
+        end
+      end
+      break if responded
+    end
+    response_result
+
   end
 
   def run
@@ -25,46 +88,7 @@ class Client
       @cmd.run
     end
 
-
-    # Consumer
-    t2 = Thread.new do
-      # TODO: client protocol
-      while true
-        until self.request_queue.empty?
-          req = self.pop_request
-          tmr = Timer.new(100)
-
-          # TODO: send request to leader
-
-          next_server_index = 0
-          while true
-
-            if tmr.timeout?
-              next_server = @servers[next_server_index]
-              # TODO: send request to next_server
-            end
-            # TODO: poll response
-            # if got a response
-            #   if response.leader != @leader
-            #     @servers.remove(response.leader)
-            #     @servers.add(@leader)
-            #     @leader = response.leader
-            #   end
-            #   if response.type == 'posted'
-            #     puts 'posted'
-            #     STDOUT.flush
-            #   else
-            #     puts response.content
-            #     STDOUT.flush
-            #   end
-          end
-        end
-      end
-    end
-
     t1.join
-    t2.join
-
   end
 
   def push_request(request)
@@ -75,11 +99,10 @@ class Client
     if self.request_queue.empty?
       nil
     elsif
-      req << self.request_queue
+    req << self.request_queue
       req
     end
   end
-
 
 end
 
@@ -132,7 +155,8 @@ class CommandInterface
           else
             puts 'Posting message: ' + cmd_parsed[1]
             # TODO: post message
-            @client.push_request(ClientRequest.new(@client.counter, cmd_parsed[1], 'post'))
+            response = @client.client_post_rpc(cmd_parsed[1])
+            puts response
             @client.counter += 1
             #@ch.default_exchange.publish(cmd_parsed[1], :routing_key => @msg_queue.name)
           end
@@ -140,8 +164,8 @@ class CommandInterface
         when 'lookup' , 'l'
           puts 'Looking up'
           # TODO: look up function
-          @client.request_queue << ClientRequest.new(0, '', 'lookup')
-
+          response = @client.client_lookup_rpc
+          puts response
         when 'exit' , 'e', 'quit', 'q'
           puts 'Exiting'
           exit(0)
@@ -153,6 +177,7 @@ class CommandInterface
       end
       print '> '
       STDOUT.flush
+      sleep(Misc::CLIENT_CMD_SLEEP_TIME)
     end
 
   end
@@ -194,8 +219,8 @@ class ClientRequest
 end
 
 
-#c = Client.new('169.231.10.109', 'hello')
-#c.run
+c = Client.new('169.231.10.109', 'dc1')
+c.run
 
 
 =begin
