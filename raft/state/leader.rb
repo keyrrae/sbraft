@@ -6,7 +6,7 @@ class Leader < State
     puts "#{@datacenter.name}'s Leader state start"
     # As leader, start threads for AppendEntries RPC
     threads = []
-    @datacenter.peers.each do |peer|
+    @datacenter.peers.values.each do |peer|
       threads << Thread.new do
         loop do
           #Break out the loop and state come to end if state got killed
@@ -76,12 +76,5 @@ class Leader < State
   #  of matchIndex[i] ≥ N, and log[N].term == currentTerm:
   #      set commitIndex = N (§5.3, §5.4).
 
-  def respond_to_append_entries(delivery_info, properties, payload)
-    raise 'Not implemented'
-  end
-
-  def respond_to_vote_request(delivery_info, properties, payload)
-    raise 'Not implemented'
-  end
 
 end

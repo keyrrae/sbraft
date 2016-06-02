@@ -7,7 +7,7 @@ module Config
     file.readlines.each do |line|
       dc_name = line.strip
       if dc_name != self.name
-        @peers << Peer.new(dc_name)
+        @peers[dc_name] = Peer.new(dc_name)
       end
     end
 

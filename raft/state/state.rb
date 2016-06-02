@@ -14,11 +14,11 @@ class State
 
   #Need to be handled in specific code. When status is killed,
   #every Thread running in a State(e.g Leader sending AppendEntries) should exit
-  def respond_to_append_entries(append_entries_rpc)
+  def respond_to_append_entries(delivery_info, properties, payload)
     raise 'Not implemented'
   end
 
-  def respond_to_vote_request(vote_request_rpc)
+  def respond_to_vote_request(delivery_info, properties, payload)
     raise 'Not implemented'
   end
 

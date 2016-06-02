@@ -11,13 +11,15 @@ class DataCenter
   include LogContainer
 
   attr_accessor(:name,
-                :quorum,
                 :current_term,
                 :current_state,
                 :peers,
                 :store,
                 :append_entries_direct_exchange,
-                :request_vote_direct_exchange
+                :request_vote_direct_exchange,
+                :client_lookup_direct_exchange,
+                :client_post_direct_exchange,
+                :voted_for
   )
 
   def initialize(name, ip,is_leader=false)
@@ -32,8 +34,8 @@ class DataCenter
     @commit_index = 0
     @last_applied = 0
 
-    #Volatile State on Leader
-    @peers = []
+    # Volatile State, map: name=>Peer
+    @peers = {}
 
     #Read configuration and storage
     read_config
@@ -100,13 +102,28 @@ class DataCenter
   end
 
   def new_term
-    self.current_term += 1
+    @current_term += 1
+    reset
+  end
+
+  # @description: triggered when there is a new term
+  def reset
+    @voted_for = nil
+    @peers.values.each do |peer|
+      peer.reset
+    end
+  end
+
+  def change_term(term)
+    @current_term = term
+    @voted_for = nil
   end
 
   def run
       puts "#{@name} start"
       #Listen to AppendEntries
       @append_entries_queue.subscribe do |delivery_info, properties, payload|
+        puts "Append entries #{payload}"
         @current_state.respond_to_append_entries  delivery_info, properties, payload
       end
       #Listen to RequestVote
@@ -160,6 +177,7 @@ class DataCenter
     call_id = Misc::generate_uuid
     reply_queue.bind(@append_entries_direct_exchange, :routing_key => reply_queue.name)
     @append_entries_direct_exchange.publish('Append Entries',
+                                            :expiration => Misc::RPC_TIMEOUT,
                                             :routing_key => peer.append_entries_queue_name,
                                             :correlation_id => call_id,
                                             :reply_to=>reply_queue.name)
@@ -169,7 +187,7 @@ class DataCenter
     while true
       reply_queue.subscribe do |delivery_info, properties, payload|
         if properties[:correlation_id] == call_id
-          response_result = payload.to_s
+          response_result = payload
           responded = true
         end
       end
@@ -192,6 +210,7 @@ class DataCenter
     request_vote_message[:last_log_term] = last_log_term
 
     @request_vote_direct_exchange.publish(request_vote_message.to_json,
+                                            :expiration => Misc::RPC_TIMEOUT,
                                             :routing_key => peer.request_vote_queue_name,
                                             :correlation_id => call_id,
                                             :reply_to=>reply_queue.name)
@@ -200,13 +219,23 @@ class DataCenter
     while true
       reply_queue.subscribe do |delivery_info, properties, payload|
         if properties[:correlation_id] == call_id
-          response_result = payload.to_s
+          response_result = payload
           responded = true
         end
       end
       break if responded
     end
     response_result
+  end
+
+  # @return true if get enough votes.
+  def enough_quorum?
+    count = 0
+    peers.each do |peer|
+      count = count + 1 if peer.vote_granted
+      return true if (count + 1) > peers.length / 2
+    end
+    false
   end
 end
 
@@ -219,7 +248,8 @@ class Peer
                 :next_index,
                 :match_index,
                 :vote_granted,
-                :heartbeat_timer
+                :heartbeat_timer,
+                :queried
   )
 
   def initialize(name)
@@ -229,8 +259,16 @@ class Peer
     @next_index = 1
     @match_index = 0
     @vote_granted = false
+    # @flag: indicating if I have contacted this peer or not. If contacted(in this term), no requestVoteRpc will be sent
+    @queried = false
     #Each peer object hold a RPC_TIMEOUT_TIMER for calculating RPC timeout
     @heartbeat_timer = Misc::Timer.new(Misc::HEARTBEAT_TIMEOUT)
+  end
+
+  # @description: Triggered when datacenter reach a new term
+  def reset
+    @vote_granted = false
+    @queried = false
   end
 end
 
@@ -245,19 +283,15 @@ dc2 = DataCenter.new('dc2','169.231.10.109')
 t2 = Thread.new do
   dc2.run
 end
+sleep(8)
 
-sleep(6)
 
-dc1 = DataCenter.new('dc1','169.231.10.109',true)
-t1= Thread.new do
-  dc1.run
-end
 # sleep(1)
 #
-# dc3= DataCenter.new('dc3','169.231.10.109')
-# t3 = Thread.new do
-#   dc3.run
-# end
+dc3= DataCenter.new('dc3','169.231.10.109')
+t3 = Thread.new do
+  dc3.run
+end
 # dc2.add_log_entry(1 ,'fuck the whole')
 
 
@@ -268,5 +302,6 @@ end
 
 # t1.join
 t2.join
+t3.join
 
 # t3.join
