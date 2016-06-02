@@ -7,7 +7,6 @@ class Candidate < State
     @datacenter.new_term  # Increment Datacenter Term
     @vote_count = 1 # Vote for self
     # TODO: send requestVote RPC to peers
-    run
   end
 
   def run

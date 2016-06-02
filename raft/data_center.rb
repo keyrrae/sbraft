@@ -239,16 +239,19 @@ end
 
 
 
-dc1 = DataCenter.new('dc1','169.231.10.109',true)
-t1= Thread.new do
-  dc1.run
-end
+
 
 dc2 = DataCenter.new('dc2','169.231.10.109')
 t2 = Thread.new do
   dc2.run
 end
 
+sleep(6)
+
+dc1 = DataCenter.new('dc1','169.231.10.109',true)
+t1= Thread.new do
+  dc1.run
+end
 # sleep(1)
 #
 # dc3= DataCenter.new('dc3','169.231.10.109')
@@ -263,7 +266,7 @@ end
 #   dc3.run
 # end
 
-t1.join
+# t1.join
 t2.join
 
 # t3.join

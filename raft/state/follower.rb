@@ -6,13 +6,14 @@ class Follower < State
     puts "#{@datacenter.name}'s Follower state start"
     loop do
       #Break out the loop and state come to end if state got killed
-      break if @status == Misc::KILLED_STATE
+      if @status == Misc::KILLED_STATE
+        puts 'Killed'
+      end
 
       if @election_timer.timeout?
         puts "#{@datacenter.name} Follower time out. To candidate state"
         @datacenter.change_state (Candidate.new(@datacenter))
       end
-
       sleep(Misc::STATE_LOOP_INTERVAL)
     end
 
