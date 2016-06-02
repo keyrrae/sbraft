@@ -1,18 +1,27 @@
 require_relative './state_module'
-require 'json'
+
+
 class Follower < State
 
+  def initialize(datacenter_context)
+    super(datacenter_context)
+    @logger = Logger.new($stdout)
+    @logger.formatter = proc do |severity, datetime, progname, msg|
+      "#{@datacenter.name}(Follower): #{msg}\n"
+    end
+  end
+
   def run
-    puts "#{@datacenter.name}'s Follower state start"
+    @logger.info 'Follower state start'
     loop do
       #Break out the loop and state come to end if state got killed
       if @status == Misc::KILLED_STATE
-        puts "#{@datacenter.name} exit follower state"
+        @logger.info 'Exit follower state'
         Thread.stop
       end
 
       if @election_timer.timeout?
-        puts "#{@datacenter.name} Follower time out. To candidate state"
+        @logger.info 'Follower time out. To candidate state'
         @datacenter.change_state (Candidate.new(@datacenter))
       end
       sleep(Misc::STATE_LOOP_INTERVAL)
@@ -23,9 +32,6 @@ class Follower < State
 
   def respond_to_append_entries(delivery_info, properties, payload)
     @election_timer.reset_timer
-    puts delivery_info
-    puts properties
-    puts payload
     @datacenter.append_entries_direct_exchange.publish("#{@datacenter.name} received appendEntries",
                                                        :routing_key => properties.reply_to,
                                                        :correlation_id => properties.correlation_id)
@@ -50,8 +56,8 @@ class Follower < State
 
     request_vote_reply[:term] = @datacenter.current_term
     request_vote_reply[:from] = @datacenter.name
-    puts "#{@datacenter.name} reply RequestVoteRPC from #{payload['candidate_name']} with : #{request_vote_reply}"
-    @datacenter.request_vote_direct_exchange.publish(request_vote_reply.to_s,
+    @logger.info "Reply RequestVoteRPC from #{payload['candidate_name']} with : #{request_vote_reply[:granted]}"
+    @datacenter.request_vote_direct_exchange.publish(request_vote_reply.to_json,
                                                        :routing_key => properties.reply_to,
                                                        :correlation_id => properties.correlation_id)
   end

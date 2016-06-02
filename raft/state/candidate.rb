@@ -1,16 +1,19 @@
 require_relative './state_module'
-require_relative '../misc'
 
 class Candidate < State
   def initialize(datacenter_context)
     super(datacenter_context)
+    @logger = Logger.new($stdout)
+    @logger.formatter = proc do |severity, datetime, progname, msg|
+      "#{@datacenter.name}(Candidate): #{msg}\n"
+    end
     # Increment Datacenter Term and reset voted_for
     @datacenter.new_term
     @datacenter.voted_for = @datacenter.name
   end
 
   def run
-    puts "#{@datacenter.name} candidate state start"
+    @logger.info 'Candidate state start'
     threads = []
 
     @datacenter.peers.values.each do |peer|
@@ -23,11 +26,10 @@ class Candidate < State
               Timeout.timeout(Misc::RPC_TIMEOUT) do
                 reply = @datacenter.rpc_requestVote(peer)
               end
-              puts "#{@datacenter.name} got reply from peer #{peer.name} : #{reply}"
               peer.queried = true
               handle_requestVote_reply reply
             rescue Timeout::Error
-              puts "RequestVoteRPC to #{peer.name} timeout"
+              @logger.info "RequestVoteRPC to #{peer.name} timeout"
             end
           else
             sleep(Misc::STATE_LOOP_INTERVAL)
@@ -39,7 +41,7 @@ class Candidate < State
     threads.each do |thread|
       thread.join
     end
-    puts "#{@datacenter.name} candidate state end"
+    @logger.info 'Candidate state end'
   end
 
   def respond_to_append_entries(delivery_info, properties, payload)
@@ -54,23 +56,23 @@ class Candidate < State
   # @param reply: [term, granted, from]
   # @return
   def handle_requestVote_reply(reply)
-    term = reply[:term]
-    granted = reply[:granted]
+    reply = JSON.parse(reply)
+    term = reply['term']
+    granted = reply['granted']
 
     #Receive reply with higher term, step down
-    if response[:term] > @datacenter.current_term
+    if term > @datacenter.current_term
       @datacenter.current_term = term
       @datacenter.change_state (Follower.new(@datacenter))
     end
 
     # If term comply with the term candidate sent
     # and the reply is true, add one quorum and check if enough quorum
-    if reply[:term] == @datacenter.current_term and reply[:granted]
-      @datacenter.peers[reply[:from]].vote_granted
-      puts "#{@datacenter.name} collect one quorum"
+    if term == @datacenter.current_term && reply['granted']
+      @datacenter.peers[reply['from']].vote_granted = true
+      @logger.info 'collect one quorum'
       if @datacenter.enough_quorum?
-        puts "#{@datacenter.name} change state to leader"
-
+        @logger.info 'Got enough quorum. change state to leader'
         @datacenter.change_state(Leader.new(@datacenter))
 
       end

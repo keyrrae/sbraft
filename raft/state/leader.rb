@@ -2,8 +2,15 @@ require_relative './state_module'
 
 class Leader < State
 
+  def initialize(datacenter_context)
+    super(datacenter_context)
+    @logger = Logger.new($stdout)
+    @logger.formatter = proc do |severity, datetime, progname, msg|
+      "#{@datacenter.name}(Leader): #{msg}\n"
+    end
+  end
   def run
-    puts "#{@datacenter.name}'s Leader state start"
+    @logger.info 'Leader state start'
     # As leader, start threads for AppendEntries RPC
     threads = []
     @datacenter.peers.values.each do |peer|
@@ -20,9 +27,9 @@ class Leader < State
               Timeout.timeout(Misc::RPC_TIMEOUT) do
                 response = @datacenter.rpc_appendEntries(peer)
               end
-              puts "Peer #{peer.name} respond to appendEntries rpc with: #{response}"
+               "Peer #{peer.name} respond to appendEntries rpc with: #{response}"
             rescue Timeout::Error
-              puts "Peer #{peer.name} cannot be reached by appendEntries rpc"
+              @logger.info "Peer #{peer.name} cannot be reached by appendEntries rpc"
             end
           else
             sleep(Misc::STATE_LOOP_INTERVAL)
@@ -33,7 +40,7 @@ class Leader < State
     threads.each do |thread|
       thread.join
     end
-    puts "#{@datacenter.name}'s Leader state end"
+    @logger.info 'Leader state end'
   end
 
 

@@ -1,6 +1,7 @@
 require 'bunny'
 require 'pstore'
 require 'json'
+require 'logger'
 require_relative './misc'
 require_relative './config'
 require_relative './storage/log_container'
@@ -23,6 +24,14 @@ class DataCenter
   )
 
   def initialize(name, ip,is_leader=false)
+
+    @logger = Logger.new($stdout)
+
+    @logger.formatter = proc do |severity, datetime, progname, msg|
+      "#{@name}: #{msg}\n"
+    end
+
+
     @name = name
 
     #Persistent State
@@ -120,10 +129,9 @@ class DataCenter
   end
 
   def run
-      puts "#{@name} start"
+      @logger.info ' start'
       #Listen to AppendEntries
       @append_entries_queue.subscribe do |delivery_info, properties, payload|
-        puts "Append entries #{payload}"
         @current_state.respond_to_append_entries  delivery_info, properties, payload
       end
       #Listen to RequestVote
@@ -150,7 +158,7 @@ class DataCenter
     if @current_state.is_a?(Leader)
       #@logs << payload.to_s
       add_log_entry(@current_term, payload)
-      puts "#{all_log_to_string}"
+      @logger.info "#{all_log_to_string}"
       @client_post_direct_exchange.publish('Successfully posted',
                                            :routing_key => properties.reply_to,
                                            :correlation_id => properties.correlation_id)
@@ -231,10 +239,12 @@ class DataCenter
   # @return true if get enough votes.
   def enough_quorum?
     count = 0
-    peers.each do |peer|
-      count = count + 1 if peer.vote_granted
-      return true if (count + 1) > peers.length / 2
+    peers.values.each do |peer|
+       if peer.vote_granted
+         count = count + 1
+       end
     end
+    return true if (count + 1) > peers.values.length / 2
     false
   end
 end
@@ -292,7 +302,6 @@ dc3= DataCenter.new('dc3','169.231.10.109')
 t3 = Thread.new do
   dc3.run
 end
-# dc2.add_log_entry(1 ,'fuck the whole')
 
 
 # dc3 = DataCenter.new('dc3','169.231.10.109')
