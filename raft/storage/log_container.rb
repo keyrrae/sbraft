@@ -22,13 +22,34 @@ module LogContainer
 
 
   def add_log_entry(term, message)
-    @logs << LogEntry.new(term, Misc::PREPARE, message)
+    @logs << LogEntry.new(term, Misc::PREPARE, message, @peers.length/2 + 1)
     flush
   end
 
-  def commit_log_entry(index)
-    @logs[index].type = Misc::COMMITTED
-    flush
+  # @param: to_index: Commit local log till index
+  def commit_log_till_index(to_index)
+    @logs.each_with_index do |log, index|
+      if(index <= to_index)
+        log.type = Misc::COMMITTED
+      else
+        break
+      end
+    end
+  end
+
+  # @description: Add entry at specific index
+  # and clear all entries after this index
+  def add_entry_at_index(entry, index)
+    if index > @logs.length
+      raise 'Exception while adding log: Too large index'
+    elsif index == @logs.length
+      @logs << entry
+    else
+      while @logs.length != index
+        @logs.pop
+      end
+      @logs << entry
+    end
   end
 
   def committed_log_to_string
@@ -75,21 +96,24 @@ module LogContainer
 
 
   class LogEntry
-    attr_accessor(:term, :type, :message)
+    attr_accessor(:term, :type, :message, :ack_count, :quorum)
 
-    def initialize(term, type, message)
+    def initialize(term, type, message, quorum)
       @term = term
       @type = type
       @message = message
+      # Quorum num for this entry
+      @quorum = quorum
+      # Creator must ack it
+      @ack_count = 1
     end
 
-    def committed?
-      @type == Misc::COMMITTED
-    end
+
 
     def to_s
       "#{@term}\t#{@type}\t#{@message}\n"
     end
-
   end
+
+
 end

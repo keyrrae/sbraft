@@ -16,6 +16,7 @@ class DataCenter
                 :current_state,
                 :peers,
                 :store,
+                :logs,
                 :append_entries_direct_exchange,
                 :request_vote_direct_exchange,
                 :client_lookup_direct_exchange,
@@ -186,8 +187,8 @@ class DataCenter
     append_entries_message = {}
     append_entries_message['term'] = @current_term
     # Consistency check
-    append_entries_message['prevIndex'] = peer.next_index - 1
-    append_entries_message['prevTerm'] = @logs[peer.next_index - 1].term
+    append_entries_message['prev_index'] = peer.next_index - 1
+    append_entries_message['prev_term'] = @logs[peer.next_index - 1].term
 
     # If there is only 1 difference between peer's next_index and match_index
     # If next_index have entry (e.g, When leader just received on post), send it together
@@ -196,7 +197,7 @@ class DataCenter
     if((peer.next_index - peer.match_index) == 1 && (peer.next_index < @logs.length))
         append_entries_message['entries'] = @logs[peer.next_index]
     end
-    append_entries_message['commitIndex'] = commit_index
+    append_entries_message['commit_index'] = commit_index
 
     ch = @conn.create_channel
     reply_queue  = ch.queue('', :exclusive => true)
@@ -312,9 +313,6 @@ t2 = Thread.new do
   dc2.run
 end
 
-dc2.add_log_entry dc2.current_term, 'Message 1'
-dc2.add_log_entry dc2.current_term, 'Message 2'
-dc2.add_log_entry dc2.current_term, 'Message 3'
 
 sleep(3)
 # sleep(1)

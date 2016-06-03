@@ -25,13 +25,13 @@ class Leader < State
           if peer.heartbeat_timer.timeout?
             peer.heartbeat_timer.reset_timer
             begin
-              response = nil
+              append_entries_reply = nil
               Timeout.timeout(Misc::RPC_TIMEOUT) do
-                response = @datacenter.rpc_appendEntries(peer)
+                append_entries_reply = @datacenter.rpc_appendEntries(peer)
               end
-              @logger.info "Peer #{peer.name} respond to appendEntries rpc with: #{response}"
-              ##得到response后，应该做：1。检查结果，正确的话增加machIndex和nextIndex,错误的话回滚nextIndex，matchIndex不变！
+              @logger.info "Peer #{peer.name} respond to appendEntries rpc with: #{reply}"
 
+              handle_appendEntries_reply append_entries_reply
             rescue Timeout::Error
               @logger.info "Peer #{peer.name} cannot be reached by appendEntries rpc"
             end
@@ -48,29 +48,22 @@ class Leader < State
   end
 
 
+  # @param append_entries_reply[term, success, match_index, from]
+  # @description: Leader handle appendEntries reply from peer
+  # 1. Change match_index if success, decrement next_index if failed
+  # 2. Commit if enough peer agree on this entry
+  def handle_appendEntries_reply(append_entries_reply)
+    peer = peers.values[append_entries_reply['from']]
+    if append_entries_reply['success']
+      peer.match_index = append_entries_reply['match_index']
+    else
+      peer.next_index = peer.next_index - 1
+    end
+  end
 
 
 
-    # t1 = Thread.new do
-    #   while true
-    #     if @election_timer.timeout?
-    #       @state_context.set_state(Candidate.new(@datacenter, @state_context))
-    #       break
-    #     end
-    #   end
-    #
-    # end
-    #
-    # t2 = Thread.new do
-    #   while true
-    #     if @heart_timer.timeout?
-    #       # TODO: send requestVote RPC to peers
-    #     end
-    #   end
-    # end
-    #
-    # t1.join
-    # t2.join
+
   #
   #Upon election: send initial empty AppendEntries RPCs
   #(heartbeat) to each server; repeat during idle periods to

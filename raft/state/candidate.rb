@@ -24,12 +24,12 @@ class Candidate < State
           end
           if !peer.queried
             begin
-              reply = nil
+              request_vote_reply = nil
               Timeout.timeout(Misc::RPC_TIMEOUT) do
-                reply = @datacenter.rpc_requestVote(peer)
+                request_vote_reply = @datacenter.rpc_requestVote(peer)
               end
               peer.queried = true
-              handle_requestVote_reply reply
+              handle_requestVote_reply request_vote_reply
             rescue Timeout::Error
               @logger.info "RequestVoteRPC to #{peer.name} timeout"
             end
@@ -55,50 +55,32 @@ class Candidate < State
 
 
 
-  # @param reply: [term, granted, from]
-  # @return
-  def handle_requestVote_reply(reply)
-    reply = JSON.parse(reply)
-    term = reply['term']
-    granted = reply['granted']
+  # @param request_vote_reply: [term, granted, from]
+  # @description: Candidate handle requestVote reply from
+  # follower(or candidate/leader, which may cause step down)
+  # 1. If receive higher term, change term and step down
+  # 2. If reply's term comply with sent term, and reply is true,
+  # add one quorum and check if can step up(enough quorum)
 
-    #Receive reply with higher term, step down
+  def handle_requestVote_reply(request_vote_reply)
+    request_vote_reply = JSON.parse(request_vote_reply)
+    term = request_vote_reply['term']
+
+    # Step 1
     if term > @datacenter.current_term
       @datacenter.current_term = term
       @datacenter.change_state (Follower.new(@datacenter))
     end
 
-    # If term comply with the term candidate sent
-    # and the reply is true, add one quorum and check if enough quorum
-    if term == @datacenter.current_term && reply['granted']
-      @datacenter.peers[reply['from']].vote_granted = true
-      @logger.info 'collect one quorum'
+    # Step 2
+    if term == @datacenter.current_term && request_vote_reply['granted']
+      @datacenter.peers[request_vote_reply['from']].vote_granted = true
+      @logger.info "Collect one quorum from #{request_vote_reply['from']}"
       if @datacenter.enough_quorum?
         @logger.info 'Got enough quorum. change state to leader'
         @datacenter.change_state(Leader.new(@datacenter))
-
       end
     end
   end
 
-  # def respond_to_signal(signal)
-  #
-  #   case signal.downcase
-  #     when 'voted for you'
-  #       @vote_count += 1
-  #       if @vote_count >= @datacenter.quorum
-  #         @state_context.set_state(Leader.new(@datacenter))
-  #       end
-  #     when 'append entries'
-  #
-  #       #if signal.term > @datacenter.term
-  #       #  @datacenter.current_term = signal.term
-  #       #  @fsm.current_state.set_state(Follower.new(@datacenter, @fsm))
-  #       #end
-  #
-  #     else
-  #       # do nothing
-  #   end
-  #
-  # end
 end
