@@ -32,6 +32,7 @@ class Follower < State
 
   def respond_to_append_entries(delivery_info, properties, payload)
     @election_timer.reset_timer
+    @logger.info payload
     @datacenter.append_entries_direct_exchange.publish("#{@datacenter.name} received appendEntries",
                                                        :routing_key => properties.reply_to,
                                                        :correlation_id => properties.correlation_id)

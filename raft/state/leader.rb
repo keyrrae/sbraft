@@ -17,7 +17,9 @@ class Leader < State
       threads << Thread.new do
         loop do
           #Break out the loop and state come to end if state got killed
-          break if @status == Misc::KILLED_STATE
+          if @status == Misc::KILLED_STATE
+            Thread.stop
+          end
 
           #If HeartBeatTimer timeout, send another wave of AppendEntries
           if peer.heartbeat_timer.timeout?
@@ -27,7 +29,9 @@ class Leader < State
               Timeout.timeout(Misc::RPC_TIMEOUT) do
                 response = @datacenter.rpc_appendEntries(peer)
               end
-               "Peer #{peer.name} respond to appendEntries rpc with: #{response}"
+              @logger.info "Peer #{peer.name} respond to appendEntries rpc with: #{response}"
+              ##得到response后，应该做：1。检查结果，正确的话增加machIndex和nextIndex,错误的话回滚nextIndex，matchIndex不变！
+
             rescue Timeout::Error
               @logger.info "Peer #{peer.name} cannot be reached by appendEntries rpc"
             end

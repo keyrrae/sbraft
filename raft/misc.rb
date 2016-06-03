@@ -81,4 +81,7 @@ module Misc
   #For log entry
   PREPARE = 'Prepare'
   COMMITTED = 'Committed'
+
+  #Root directory
+  ROOT_DIR = __dir__
 end

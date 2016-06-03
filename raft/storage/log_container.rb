@@ -2,14 +2,22 @@ require_relative '../misc'
 require 'pstore'
 
 module LogContainer
-
+  # Log's index starts at 1
   def last_log_term
-    return 0 if @logs.length == 0
     @logs.last.term
   end
 
   def last_log_index
-    @logs.length
+    @logs.length - 1
+  end
+
+  # @description: Get last committed log's index
+  def commit_index
+    @logs.each_with_index do |log, index|
+      next if log.nil?
+      return index if log.type == Misc::COMMITTED
+    end
+    return 0
   end
 
 
@@ -70,19 +78,17 @@ module LogContainer
     attr_accessor(:term, :type, :message)
 
     def initialize(term, type, message)
-
-      self.term = term
-      self.type = type
-      self.message = message
-
+      @term = term
+      @type = type
+      @message = message
     end
 
     def committed?
-      self.type == Misc::COMMITTED
+      @type == Misc::COMMITTED
     end
 
     def to_s
-      "#{self.term}\t#{self.type}\t#{self.message}\n"
+      "#{@term}\t#{@type}\t#{@message}\n"
     end
 
   end

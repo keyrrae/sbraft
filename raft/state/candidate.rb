@@ -19,7 +19,9 @@ class Candidate < State
     @datacenter.peers.values.each do |peer|
       threads << Thread.new do
         loop do
-          break if @status == Misc::KILLED_STATE
+          if @status == Misc::KILLED_STATE
+            Thread.stop
+          end
           if !peer.queried
             begin
               reply = nil

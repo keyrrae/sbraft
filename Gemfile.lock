@@ -4,12 +4,16 @@ GEM
     amq-protocol (2.0.1)
     bunny (2.3.1)
       amq-protocol (>= 2.0.1)
+    power_assert (0.2.2)
+    test-unit (3.0.8)
+      power_assert
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
   bunny
+  test-unit
 
 BUNDLED WITH
    1.10.6

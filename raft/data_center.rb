@@ -37,7 +37,9 @@ class DataCenter
     #Persistent State
     @current_term = 1
     @voted_for = nil
-    @logs = []
+
+    # Log's index start at 1
+    @logs = [LogEntry.new(0,Misc::COMMITTED,'Empty')]
 
     #Volatile State
     @commit_index = 0
@@ -180,11 +182,27 @@ class DataCenter
 
   # AppendEntries RPC
   def rpc_appendEntries(peer)
+    call_id = Misc::generate_uuid
+    append_entries_message = {}
+    append_entries_message['term'] = @current_term
+    # Consistency check
+    append_entries_message['prevIndex'] = peer.next_index - 1
+    append_entries_message['prevTerm'] = @logs[peer.next_index - 1].term
+
+    # If there is only 1 difference between peer's next_index and match_index
+    # If next_index have entry (e.g, When leader just received on post), send it together
+    # Else just send empty entries
+    append_entries_message['entries'] = nil
+    if((peer.next_index - peer.match_index) == 1 && (peer.next_index < @logs.length))
+        append_entries_message['entries'] = @logs[peer.next_index]
+    end
+    append_entries_message['commitIndex'] = commit_index
+
     ch = @conn.create_channel
     reply_queue  = ch.queue('', :exclusive => true)
-    call_id = Misc::generate_uuid
     reply_queue.bind(@append_entries_direct_exchange, :routing_key => reply_queue.name)
-    @append_entries_direct_exchange.publish('Append Entries',
+
+    @append_entries_direct_exchange.publish(append_entries_message.to_json,
                                             :expiration => Misc::RPC_TIMEOUT,
                                             :routing_key => peer.append_entries_queue_name,
                                             :correlation_id => call_id,
@@ -206,16 +224,16 @@ class DataCenter
 
   # RequestVote RPC
   def rpc_requestVote(peer)
+    call_id = Misc::generate_uuid
+    request_vote_message = {}
+    request_vote_message['term'] = @current_term
+    request_vote_message['candidate_name'] = @name
+    request_vote_message['last_log_index'] = last_log_index
+    request_vote_message['last_log_term'] = last_log_term
+
     ch = @conn.create_channel
     reply_queue  = ch.queue('', :exclusive => true)
-    call_id = Misc::generate_uuid
     reply_queue.bind(@request_vote_direct_exchange, :routing_key => reply_queue.name)
-
-    request_vote_message = {}
-    request_vote_message[:term] = @current_term
-    request_vote_message[:candidate_name] = @name
-    request_vote_message[:last_log_index] = last_log_index
-    request_vote_message[:last_log_term] = last_log_term
 
     @request_vote_direct_exchange.publish(request_vote_message.to_json,
                                             :expiration => Misc::RPC_TIMEOUT,
@@ -289,13 +307,16 @@ end
 
 
 
-dc2 = DataCenter.new('dc2','169.231.10.109')
+dc2 = DataCenter.new('dc2','169.231.10.109', true)
 t2 = Thread.new do
   dc2.run
 end
-sleep(8)
 
+dc2.add_log_entry dc2.current_term, 'Message 1'
+dc2.add_log_entry dc2.current_term, 'Message 2'
+dc2.add_log_entry dc2.current_term, 'Message 3'
 
+sleep(3)
 # sleep(1)
 #
 dc3= DataCenter.new('dc3','169.231.10.109')

@@ -1,9 +1,10 @@
 require 'pstore'
+require 'pathname';
 module Config
   def read_config
-    @cfg_filename = 'configuration.txt'
+    @cfg_filename = Misc::ROOT_DIR + '/configuration.txt'
     file = File.open(@cfg_filename, 'r')
-    puts "Read configuration file #{@cfg_filename}"
+    @logger.info "Read configuration file #{@cfg_filename}"
     file.readlines.each do |line|
       dc_name = line.strip
       if dc_name != self.name
@@ -16,7 +17,7 @@ module Config
   def read_storage
     #Read Pstore file from persistent storage if there is one.
     if File.exist? "#{@name}.pstore"
-      puts 'Found previous storage. Read PStore'
+      @logger.info 'Found previous storage. Read PStore'
       @store = PStore.new("#{@name}.pstore")
       @store.transaction do
         @current_term = @store[:current_term]
@@ -25,7 +26,7 @@ module Config
         @commit_index = @store[:commit_index]
       end
     else
-      puts 'Previous Storage not found. Create one.'
+      @logger.info 'Previous Storage not found. Create one.'
       @store = PStore.new("#{@name}.pstore")
       @store.transaction do
         @store[:current_term] = 1
