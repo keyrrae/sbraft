@@ -1,11 +1,13 @@
 require_relative './state_module'
 
 class Candidate < State
+  Thread.abort_on_exception=true # add this for handling non-thread Thread exception
+
   def initialize(datacenter_context)
     super(datacenter_context)
     @logger = Logger.new($stdout)
     @logger.formatter = proc do |severity, datetime, progname, msg|
-      "#{@datacenter.name}(Candidate): #{msg}\n"
+      "#{@datacenter.name}(Candidate): #{msg}\n\n"
     end
     # Increment Datacenter Term and reset voted_for
     @datacenter.new_term
@@ -76,11 +78,24 @@ class Candidate < State
     if term == @datacenter.current_term && request_vote_reply['granted']
       @datacenter.peers[request_vote_reply['from']].vote_granted = true
       @logger.info "Collect one quorum from #{request_vote_reply['from']}"
-      if @datacenter.enough_quorum?
+      if enough_quorum?
         @logger.info 'Got enough quorum. change state to leader'
         @datacenter.change_state(Leader.new(@datacenter))
       end
     end
+  end
+
+  # @return true if get enough votes.
+  def enough_quorum?
+    # At least vote for itself
+    count = 1
+    @datacenter.peers.values.each do |peer|
+      if peer.vote_granted
+        count = count + 1
+      end
+    end
+    return true if count >= (@datacenter.peers.length / 2 + 1)
+    false
   end
 
 end

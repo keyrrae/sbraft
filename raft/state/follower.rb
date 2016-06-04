@@ -2,12 +2,13 @@ require_relative './state_module'
 
 
 class Follower < State
+  Thread.abort_on_exception=true # add this for handling non-thread Thread exception
 
   def initialize(datacenter_context)
     super(datacenter_context)
     @logger = Logger.new($stdout)
     @logger.formatter = proc do |severity, datetime, progname, msg|
-      "#{@datacenter.name}(Follower): #{msg}\n"
+      "[#{datetime}] #{@datacenter.name}(Follower): #{msg}\n\n"
     end
   end
 
@@ -21,6 +22,7 @@ class Follower < State
       end
 
       if @election_timer.timeout?
+        @election_timer.reset_timer
         @logger.info 'Follower time out. To candidate state'
         @datacenter.change_state (Candidate.new(@datacenter))
       end
@@ -42,7 +44,8 @@ class Follower < State
   def respond_to_append_entries(delivery_info, properties, payload)
     payload = JSON.parse(payload)
     @election_timer.reset_timer
-    @logger.info payload
+    @logger.info "#{payload}"
+
 
     # Step 1
     if payload['term'] > @datacenter.current_term
@@ -53,20 +56,25 @@ class Follower < State
     # Step 2
     append_entries_reply = {}
     append_entries_reply['from'] = @datacenter.name
-    if (payload['prev_index'] < @datacenter.logs.length &&
+    if ((payload['prev_index'] < @datacenter.logs.length) &&
         @datacenter.logs[payload['prev_index']].term == payload['prev_term'])
       append_entries_reply['success'] = true
       append_entries_reply['match_index'] = payload['prev_index']
       if !payload['entries'].nil?
         # Will clean all logs after this index
-        @datacenter.add_entry_at_index payload['entries'], append_entries_reply['match_index'] + 1
+        @datacenter.add_entry_at_index(LogContainer::LogEntry.from_hash(payload['entries']), append_entries_reply['match_index'] + 1)
+      end
+    else
+      @logger.info "Respond False because payload['prev_index']=#{payload['prev_index']}, @datacenter.logs.length=#{@datacenter.logs.length}"
+      if @datacenter.logs[payload['prev_index']] != nil
+          @logger.info "@datacenter.logs[payload['prev_index']].term=#{@datacenter.logs[payload['prev_index']].term},payload['prev_term'] = #{payload['prev_term']}"
       end
       append_entries_reply['success'] = false
       append_entries_reply['match_index'] = 0
     end
 
     # Step 3
-    @datacenter.commit_log_till_index commit_index
+    @datacenter.commit_log_till_index payload['commit_index']
 
     @datacenter.append_entries_direct_exchange.publish(append_entries_reply.to_json,
                                                        :routing_key => properties.reply_to,

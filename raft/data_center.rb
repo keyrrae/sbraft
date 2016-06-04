@@ -11,6 +11,8 @@ class DataCenter
   include Config
   include LogContainer
 
+  Thread.abort_on_exception=true # add this for handling non-thread Thread exception
+
   attr_accessor(:name,
                 :current_term,
                 :current_state,
@@ -39,15 +41,17 @@ class DataCenter
     @current_term = 1
     @voted_for = nil
 
-    # Log's index start at 1
-    @logs = [LogEntry.new(0,Misc::COMMITTED,'Empty')]
+    # Volatile State, map: name=>Peer
+    @peers = {}
+
+
+    @logs = []
 
     #Volatile State
     @commit_index = 0
     @last_applied = 0
 
-    # Volatile State, map: name=>Peer
-    @peers = {}
+
 
     #Read configuration and storage
     read_config
@@ -160,7 +164,7 @@ class DataCenter
     # if I am the leader, I'll add the message to my logs
     if @current_state.is_a?(Leader)
       #@logs << payload.to_s
-      add_log_entry(@current_term, payload)
+      add_log_entry(payload)
       @logger.info "#{all_log_to_string}"
       @client_post_direct_exchange.publish('Successfully posted',
                                            :routing_key => properties.reply_to,
@@ -194,8 +198,9 @@ class DataCenter
     # If next_index have entry (e.g, When leader just received on post), send it together
     # Else just send empty entries
     append_entries_message['entries'] = nil
-    if((peer.next_index - peer.match_index) == 1 && (peer.next_index < @logs.length))
-        append_entries_message['entries'] = @logs[peer.next_index]
+
+    if((peer.next_index - peer.match_index) == 1)
+        append_entries_message['entries'] = get_entry_at(peer.next_index)
     end
     append_entries_message['commit_index'] = commit_index
 
@@ -255,17 +260,7 @@ class DataCenter
     response_result
   end
 
-  # @return true if get enough votes.
-  def enough_quorum?
-    count = 0
-    peers.values.each do |peer|
-       if peer.vote_granted
-         count = count + 1
-       end
-    end
-    return true if (count + 1) > peers.values.length / 2
-    false
-  end
+
 end
 
 
@@ -307,29 +302,35 @@ end
 
 
 
-
+#
 dc2 = DataCenter.new('dc2','169.231.10.109', true)
 t2 = Thread.new do
   dc2.run
 end
 
 
-sleep(3)
-# sleep(1)
+dc2.add_log_entry('Message1')
+dc2.add_log_entry('Message2')
 #
+#
+# sleep(8)
+# # sleep(1)
+# #
 dc3= DataCenter.new('dc3','169.231.10.109')
 t3 = Thread.new do
   dc3.run
 end
 
+t2.join
+t3.join
 
 # dc3 = DataCenter.new('dc3','169.231.10.109')
 # t3 = Thread.new do
 #   dc3.run
 # end
 
-# t1.join
-t2.join
-t3.join
+# # t1.join
+# t2.join
+# t3.join
 
 # t3.join

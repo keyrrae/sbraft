@@ -1,5 +1,6 @@
 module Misc
   require 'thread'
+  require 'set'
   class Timer
     attr_accessor(:last_timestamp, :timeout_in_sec)
     @mutex = Mutex.new
@@ -10,17 +11,16 @@ module Misc
       @mutex = Mutex.new
     end
 
-    def set_timeout(timeout)
-      self.timeout_in_sec = timeout
-      self.last_timestamp = Time.now
-    end
+    # def set_timeout(timeout)
+    #   @timeout_in_sec = timeout
+    #   @last_timestamp = Time.now
+    # end
 
 
     def reset_timer
       #Avoid read timeout when resetting
       @mutex.synchronize {
-        freeze = false
-        self.last_timestamp = Time.now
+        @last_timestamp = Time.now
       }
     end
 
@@ -34,8 +34,7 @@ module Misc
     def timeout?
       @mutex.synchronize {
         temp = Time.now
-        if time_diff_in_sec(@last_timestamp, temp) > self.timeout_in_sec then
-          @last_timestamp = temp
+        if time_diff_in_sec(@last_timestamp, temp) > @timeout_in_sec then
           true
         else
           false
@@ -54,13 +53,13 @@ module Misc
 
 
   #Constants
-  ELECTION_TIMEOUT = 4.freeze
+  ELECTION_TIMEOUT = 5.freeze
   #For both AppendEntries RPC and Request Vote RPC. This is used by each Peer object for a Datacenter. In second
   RPC_TIMEOUT = 2.freeze
-  #For calculating when to send an AppendEntries request to peers. This is used by Datacenter object. Only Leader need this. In mill
+  #For calculating when to send an AppendEntries request to peers. This is used by Datacenter object. Only Leader need this. In second
   HEARTBEAT_TIMEOUT = 2.freeze
   #The interval for each state main loop
-  STATE_LOOP_INTERVAL = 1.freeze
+  STATE_LOOP_INTERVAL = 0.5.freeze
   #AppendEntries Exchange name
   APPEND_ENTRIES_DIRECT_EXCHANGE = 'AppendEntriesDirect'.freeze
   #VoteRequest Exchange name
@@ -75,13 +74,14 @@ module Misc
   CLIENT_CMD_SLEEP_TIME = 0.01.freeze
 
   #For state
-  RUNNING_STATE = 'Running'
-  KILLED_STATE = 'Killed'
+  RUNNING_STATE = 'Running'.freeze
+  KILLED_STATE = 'Killed'.freeze
 
   #For log entry
-  PREPARE = 'Prepare'
-  COMMITTED = 'Committed'
+  PREPARE = 'Prepare'.freeze
+  COMMITTED = 'Committed'.freeze
 
   #Root directory
   ROOT_DIR = __dir__
+
 end
