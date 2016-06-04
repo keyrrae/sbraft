@@ -79,9 +79,9 @@ class Leader < State
 
     if((peer.next_index - peer.match_index) == 1)
       #get_entry_at may return an entry or nil if slot is empty
-      append_entries_message['entries'] = get_entry_at(peer.next_index)
+      append_entries_message['entries'] = @datacenter.get_entry_at(peer.next_index)
     end
-    append_entries_message['commit_index'] = commit_index
+    append_entries_message['commit_index'] = @datacenter.commit_index
 
     ch = @datacenter.conn.create_channel
     reply_queue  = ch.queue('', :exclusive => true)
@@ -166,8 +166,6 @@ class Leader < State
           peer.match_index = peer.match_index + 1
         end
       end
-
-
     else
       peer.next_index = peer.next_index - 1
     end

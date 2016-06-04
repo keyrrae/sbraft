@@ -50,7 +50,6 @@ class Follower < State
     # Step 1
     if payload['term'] > @datacenter.current_term
       @datacenter.change_term payload['term']
-      @datacenter.voted_for = nil
     end
 
     # Step 2

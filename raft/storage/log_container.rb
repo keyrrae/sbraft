@@ -47,6 +47,7 @@ module LogContainer
 
   # @description: Invoked only by leader. An entry got a peer's ack. Will commit if reach quorum.
   # Can be triggered on a empty slot. Will just ignore this operation.
+  # TODO: Not tested
   def peer_ack(entry_index, peer_name)
     if entry_index < @logs.length
       @logs[entry_index].ack_peers.add(peer_name)
@@ -62,7 +63,7 @@ module LogContainer
 
     # If there is a majority of servers that ack a current term entry, go through all previous log
     # to see if previous logs need to be committed
-    1..entry_index.each do |index|
+    (1..entry_index).each do |index|
       if @logs[index].ack_peers.size >= @logs[index].quorum
         @logs[index].type = Misc::COMMITTED
       end
@@ -90,6 +91,7 @@ module LogContainer
 
   # @description: Invoked only by non-leader. Add entry at specific index
   # and clear all entries after this index. Do not self-ack this entry.
+  # TODO Not tested
   def add_entry_at_index(entry, index)
     if index > @logs.length
       raise 'Exception while adding log: Too large index'

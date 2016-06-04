@@ -81,8 +81,8 @@ class Candidate < State
     request_vote_message = {}
     request_vote_message['term'] = @datacenter.current_term
     request_vote_message['candidate_name'] = @datacenter.name
-    request_vote_message['last_log_index'] = last_log_index
-    request_vote_message['last_log_term'] = last_log_term
+    request_vote_message['last_log_index'] = @datacenter.last_log_index
+    request_vote_message['last_log_term'] =  @datacenter.last_log_term
 
     ch = @datacenter.conn.create_channel
     reply_queue  = ch.queue('', :exclusive => true)
