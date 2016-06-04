@@ -53,7 +53,7 @@ module Misc
 
 
   #Constants
-  ELECTION_TIMEOUT = 5.freeze
+  ELECTION_TIMEOUT = 6.freeze
   #For both AppendEntries RPC and Request Vote RPC. This is used by each Peer object for a Datacenter. In second
   RPC_TIMEOUT = 2.freeze
   #For calculating when to send an AppendEntries request to peers. This is used by Datacenter object. Only Leader need this. In second

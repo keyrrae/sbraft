@@ -303,26 +303,36 @@ end
 
 
 #
-dc2 = DataCenter.new('dc2','169.231.10.109', true)
-t2 = Thread.new do
-  dc2.run
-end
-
-
-dc2.add_log_entry('Message1')
-dc2.add_log_entry('Message2')
+# dc2 = DataCenter.new('dc2','169.231.10.109', true)
+# t2 = Thread.new do
+#   dc2.run
+# end
 #
 #
-# sleep(8)
-# # sleep(1)
+# dc2.add_log_entry('Message1')
+# dc2.add_log_entry('Message2')
+# dc2.add_log_entry('Message3')
+# dc2.add_log_entry('Message4')
 # #
-dc3= DataCenter.new('dc3','169.231.10.109')
-t3 = Thread.new do
-  dc3.run
-end
-
-t2.join
-t3.join
+# #
+# # sleep(8)
+# # # sleep(1)
+# # #
+# dc3= DataCenter.new('dc3','169.231.10.109')
+# t3 = Thread.new do
+#   dc3.run
+# end
+#
+#
+# dc1 = DataCenter.new('dc1','169.231.10.109')
+# t1 = Thread.new do
+#   dc1.run
+# end
+#
+#
+# t2.join
+# t3.join
+# t1.join
 
 # dc3 = DataCenter.new('dc3','169.231.10.109')
 # t3 = Thread.new do

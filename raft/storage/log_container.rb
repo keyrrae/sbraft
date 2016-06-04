@@ -23,7 +23,7 @@ module LogContainer
       end
       return index - 1
     end
-    return 0
+    return @logs.length - 1
   end
 
   # @description: Get entry at specific index
