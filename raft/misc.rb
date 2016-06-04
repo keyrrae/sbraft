@@ -52,8 +52,17 @@ module Misc
   end
 
 
+  def self.range (min, max)
+    rand * (max-min) + min
+  end
+
+
+  def self.RANDOM_ELECTION_TIMEOUT
+    range(0.8, 1.2) * BASE_ELECTION_TIMEOUT
+  end
+
   #Constants
-  ELECTION_TIMEOUT = 6.freeze
+  BASE_ELECTION_TIMEOUT = 8.freeze
   #For both AppendEntries RPC and Request Vote RPC. This is used by each Peer object for a Datacenter. In second
   RPC_TIMEOUT = 2.freeze
   #For calculating when to send an AppendEntries request to peers. This is used by Datacenter object. Only Leader need this. In second

@@ -5,6 +5,7 @@ class Leader < State
 
   def initialize(datacenter_context)
     super(datacenter_context)
+    @leader = @name
     @logger = Logger.new($stdout)
     @logger.formatter = proc do |severity, datetime, progname, msg|
       "[#{datetime}] #{@datacenter.name}(Leader): #{msg}\n\n"

@@ -8,7 +8,7 @@ class State
   def initialize(datacenter)
     @datacenter = datacenter
     #Timer for election
-    @election_timer = Misc::Timer.new(Misc::ELECTION_TIMEOUT)
+    @election_timer = Misc::Timer.new(Misc.RANDOM_ELECTION_TIMEOUT)
     @status = Misc::RUNNING_STATE
   end
 
