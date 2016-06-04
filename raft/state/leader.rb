@@ -73,8 +73,7 @@ class Leader < State
     # Consistency check
     append_entries_message['prev_index'] = peer.next_index - 1
     append_entries_message['prev_term'] = @datacenter.logs[peer.next_index - 1].term
-
-
+    append_entries_message['leader'] = @datacenter.name
     append_entries_message['entries'] = nil
 
     if((peer.next_index - peer.match_index) == 1)

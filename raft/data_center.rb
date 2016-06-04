@@ -14,6 +14,7 @@ class DataCenter
   Thread.abort_on_exception=true # add this for handling non-thread Thread exception
 
   attr_accessor(:name,
+                :leader,
                 :conn,
                 :current_term,
                 :current_state,
@@ -35,7 +36,7 @@ class DataCenter
       "#{@name}: #{msg}\n"
     end
 
-
+    @leader = nil
     @name = name
 
     #Persistent State
@@ -132,6 +133,7 @@ class DataCenter
   # @description: triggered when there is a new term
   def reset
     @voted_for = nil
+    @leader = nil
     @peers.values.each do |peer|
       peer.reset
     end

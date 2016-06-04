@@ -46,6 +46,8 @@ class Follower < State
     @election_timer.reset_timer
     @logger.info "#{payload}"
 
+    #Update leader
+    @datacenter.leader = payload['leader']
 
     # Step 1
     if payload['term'] > @datacenter.current_term

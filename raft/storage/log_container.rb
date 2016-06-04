@@ -72,6 +72,7 @@ module LogContainer
     flush
   end
 
+  # @tested
   # @description: Check if current logs contains a current term entry that acknowledged by majority of servers
   def majority_ack_current_term_entry?
     current_term_entry = nil
