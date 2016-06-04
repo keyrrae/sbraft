@@ -138,7 +138,7 @@ module LogContainer
     s = ''
     index = 1
     @logs.each do |log_entry|
-      s = "#{s}#{index}\t#{log_entry}"
+      s = "#{s}\n#{index}\t#{log_entry}"
       index += 1
 
     end
