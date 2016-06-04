@@ -84,7 +84,7 @@ class Candidate < State
     request_vote_message['last_log_index'] = last_log_index
     request_vote_message['last_log_term'] = last_log_term
 
-    ch = @conn.create_channel
+    ch = @datacenter.conn.create_channel
     reply_queue  = ch.queue('', :exclusive => true)
     reply_queue.bind(@datacenter.request_vote_direct_exchange, :routing_key => reply_queue.name)
 
@@ -111,6 +111,7 @@ class Candidate < State
   # @param payload [term, prev_index, prev_term, entries, commit_index]
   # @description: Just step down and increase term if needed. Will not handle this message,
   # leave it to follower's state loop.
+  # TODO: Not tested yet
   def respond_to_append_entries(delivery_info, properties, payload)
     payload = JSON.parse(payload)
     @datacenter.current_term = payload['term']
@@ -122,6 +123,7 @@ class Candidate < State
   # leave it to follower's state loop.
   # If received lower or equal term peer's vote request, reply false
   # @sent_message request_vote_reply[:term, :granted, :from]
+  # TODO: Not tested yet
   def respond_to_vote_request(delivery_info, properties, payload)
     payload = JSON.parse(payload)
     if payload['term'] > @datacenter.current_term

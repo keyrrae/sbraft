@@ -61,7 +61,11 @@ class Leader < State
   end
 
 
-  # AppendEntries RPC
+  # @description: AppendEntries RPC
+  # 1. According to peer's next_index, set consistency check related info in message
+  # 2. If peer's next_index and peer's match_index just different by 1,
+  # send the local entry which has index of peer's next_index (Can be nil, when local logs and peer's logs are totally sync)
+  # 3. Send commit_index together
   def rpc_appendEntries(peer)
     call_id = Misc::generate_uuid
     append_entries_message = {}
@@ -70,17 +74,16 @@ class Leader < State
     append_entries_message['prev_index'] = peer.next_index - 1
     append_entries_message['prev_term'] = @datacenter.logs[peer.next_index - 1].term
 
-    # If there is only 1 difference between peer's next_index and match_index
-    # If next_index have entry (e.g, When leader just received on post), send it together
-    # Else just send empty entries
+
     append_entries_message['entries'] = nil
 
     if((peer.next_index - peer.match_index) == 1)
+      #get_entry_at may return an entry or nil if slot is empty
       append_entries_message['entries'] = get_entry_at(peer.next_index)
     end
     append_entries_message['commit_index'] = commit_index
 
-    ch = @conn.create_channel
+    ch = @datacenter.conn.create_channel
     reply_queue  = ch.queue('', :exclusive => true)
     reply_queue.bind(@datacenter.append_entries_direct_exchange, :routing_key => reply_queue.name)
 
@@ -116,6 +119,7 @@ class Leader < State
   # @description: If discover greater term, change term and step down. Will not handle this message.
   # If received lower or equal term peer's vote request, reply false
   # @sent_message request_vote_reply[:term, :granted, :from]
+  # TODO: Not tested yet
   def respond_to_vote_request(delivery_info, properties, payload)
     payload = JSON.parse(payload)
     if payload['term'] > @datacenter.current_term

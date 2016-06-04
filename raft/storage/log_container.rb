@@ -44,6 +44,7 @@ module LogContainer
   end
 
 
+
   # @description: Invoked only by leader. An entry got a peer's ack. Will commit if reach quorum.
   # Can be triggered on a empty slot. Will just ignore this operation.
   def peer_ack(entry_index, peer_name)
@@ -53,10 +54,38 @@ module LogContainer
       return
     end
 
-    if @logs[entry_index].ack_peers.size >= @logs[entry_index].quorum
-      @logs[entry_index].type = Misc::COMMITTED
+    # Mark log entries committed if stored on a majority of
+    # servers and at least one entry from current term is stored on
+    # a majority of servers
+    # TODO: Not tested yet
+    return if !majority_ack_current_term_entry?
+
+    # If there is a majority of servers that ack a current term entry, go through all previous log
+    # to see if previous logs need to be committed
+    1..entry_index.each do |index|
+      if @logs[index].ack_peers.size >= @logs[index].quorum
+        @logs[index].type = Misc::COMMITTED
+      end
     end
+
     flush
+  end
+
+  # @description: Check if current logs contains a current term entry that acknowledged by majority of servers
+  def majority_ack_current_term_entry?
+    current_term_entry = nil
+    @logs.each do |log|
+      if log.term == @current_term
+        current_term_entry = log
+        break
+      end
+    end
+    if (current_term_entry == nil or current_term_entry.ack_peers.size < current_term_entry.quorum)
+      return false
+    else
+      return true
+    end
+
   end
 
   # @description: Invoked only by non-leader. Add entry at specific index

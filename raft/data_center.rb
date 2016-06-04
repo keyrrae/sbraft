@@ -14,6 +14,7 @@ class DataCenter
   Thread.abort_on_exception=true # add this for handling non-thread Thread exception
 
   attr_accessor(:name,
+                :conn,
                 :current_term,
                 :current_state,
                 :peers,
