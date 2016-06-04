@@ -117,8 +117,14 @@ class DataCenter
     start_state
   end
 
+  # Term switching
   def new_term
     @current_term += 1
+    reset
+  end
+
+  def change_term(term)
+    @current_term = term
     reset
   end
 
@@ -130,10 +136,7 @@ class DataCenter
     end
   end
 
-  def change_term(term)
-    @current_term = term
-    @voted_for = nil
-  end
+
 
   def run
       @logger.info ' start'
@@ -185,80 +188,7 @@ class DataCenter
 
   end
 
-  # AppendEntries RPC
-  def rpc_appendEntries(peer)
-    call_id = Misc::generate_uuid
-    append_entries_message = {}
-    append_entries_message['term'] = @current_term
-    # Consistency check
-    append_entries_message['prev_index'] = peer.next_index - 1
-    append_entries_message['prev_term'] = @logs[peer.next_index - 1].term
 
-    # If there is only 1 difference between peer's next_index and match_index
-    # If next_index have entry (e.g, When leader just received on post), send it together
-    # Else just send empty entries
-    append_entries_message['entries'] = nil
-
-    if((peer.next_index - peer.match_index) == 1)
-        append_entries_message['entries'] = get_entry_at(peer.next_index)
-    end
-    append_entries_message['commit_index'] = commit_index
-
-    ch = @conn.create_channel
-    reply_queue  = ch.queue('', :exclusive => true)
-    reply_queue.bind(@append_entries_direct_exchange, :routing_key => reply_queue.name)
-
-    @append_entries_direct_exchange.publish(append_entries_message.to_json,
-                                            :expiration => Misc::RPC_TIMEOUT,
-                                            :routing_key => peer.append_entries_queue_name,
-                                            :correlation_id => call_id,
-                                            :reply_to=>reply_queue.name)
-    #Wait for response
-    response_result = nil
-    responded = false
-    while true
-      reply_queue.subscribe do |delivery_info, properties, payload|
-        if properties[:correlation_id] == call_id
-          response_result = payload
-          responded = true
-        end
-      end
-      break if responded
-    end
-    response_result
-  end
-
-  # RequestVote RPC
-  def rpc_requestVote(peer)
-    call_id = Misc::generate_uuid
-    request_vote_message = {}
-    request_vote_message['term'] = @current_term
-    request_vote_message['candidate_name'] = @name
-    request_vote_message['last_log_index'] = last_log_index
-    request_vote_message['last_log_term'] = last_log_term
-
-    ch = @conn.create_channel
-    reply_queue  = ch.queue('', :exclusive => true)
-    reply_queue.bind(@request_vote_direct_exchange, :routing_key => reply_queue.name)
-
-    @request_vote_direct_exchange.publish(request_vote_message.to_json,
-                                            :expiration => Misc::RPC_TIMEOUT,
-                                            :routing_key => peer.request_vote_queue_name,
-                                            :correlation_id => call_id,
-                                            :reply_to=>reply_queue.name)
-    response_result = nil
-    responded = false
-    while true
-      reply_queue.subscribe do |delivery_info, properties, payload|
-        if properties[:correlation_id] == call_id
-          response_result = payload
-          responded = true
-        end
-      end
-      break if responded
-    end
-    response_result
-  end
 
 
 end

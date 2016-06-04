@@ -2,15 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="14e86e3f-2b9b-413c-a256-1533ca5ec74c" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/raft/dc1.rb" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/raft/dc2.rb" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/raft/dc3.rb" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/raft/dc2.pstore" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/raft/dc3.pstore" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/raft/state/candidate.rb" afterPath="$PROJECT_DIR$/raft/state/candidate.rb" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/raft/data_center.rb" afterPath="$PROJECT_DIR$/raft/data_center.rb" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/raft/storage/log_container.rb" afterPath="$PROJECT_DIR$/raft/storage/log_container.rb" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/raft/misc.rb" afterPath="$PROJECT_DIR$/raft/misc.rb" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/sbraft.iml" afterPath="$PROJECT_DIR$/.idea/sbraft.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/raft/dc1.pstore" afterPath="$PROJECT_DIR$/raft/dc1.pstore" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/raft/state/leader.rb" afterPath="$PROJECT_DIR$/raft/state/leader.rb" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="sbraft.iws" />
@@ -28,7 +23,7 @@
     <SUITE FILE_PATH="coverage/sbraft@Test.coverage" NAME="Test Coverage Results" MODIFIED="1464216681330" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="rcov" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/raft" MODULE_NAME="sbraft" />
     <SUITE FILE_PATH="coverage/sbraft@data_center.coverage" NAME="data_center Coverage Results" MODIFIED="1465023880718" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="rcov" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/raft" MODULE_NAME="sbraft" />
     <SUITE FILE_PATH="coverage/sbraft@rpc_server.coverage" NAME="rpc_server Coverage Results" MODIFIED="1463467212199" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="rcov" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/raft" MODULE_NAME="sbraft" />
-    <SUITE FILE_PATH="coverage/sbraft@dc1.coverage" NAME="dc1 Coverage Results" MODIFIED="1465024648231" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="rcov" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/raft" MODULE_NAME="sbraft" />
+    <SUITE FILE_PATH="coverage/sbraft@dc1.coverage" NAME="dc1 Coverage Results" MODIFIED="1465026227425" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="rcov" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/raft" MODULE_NAME="sbraft" />
     <SUITE FILE_PATH="coverage/sbraft@entry.coverage" NAME="entry Coverage Results" MODIFIED="1464158192059" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="rcov" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/raft" MODULE_NAME="sbraft" />
     <SUITE FILE_PATH="coverage/sbraft@rpc_client.coverage" NAME="rpc_client Coverage Results" MODIFIED="1463452229317" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="rcov" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/raft" MODULE_NAME="sbraft" />
     <SUITE FILE_PATH="coverage/sbraft@dc3.coverage" NAME="dc3 Coverage Results" MODIFIED="1465024310964" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="rcov" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/raft" MODULE_NAME="sbraft" />
@@ -52,17 +47,7 @@
         <entry file="file://$PROJECT_DIR$/raft/state/leader.rb">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="84" column="24" selection-start-line="84" selection-start-column="24" selection-end-line="84" selection-end-column="24" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="follower.rb" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/raft/state/follower.rb">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-16.666666">
-              <caret line="71" column="45" selection-start-line="71" selection-start-column="45" selection-end-line="71" selection-end-column="45" />
+              <caret line="105" column="0" selection-start-line="105" selection-start-column="0" selection-end-line="105" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -72,7 +57,37 @@
         <entry file="file://$PROJECT_DIR$/raft/data_center.rb">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="216" column="25" selection-start-line="216" selection-start-column="25" selection-end-line="216" selection-end-column="25" />
+              <caret line="191" column="0" selection-start-line="191" selection-start-column="0" selection-end-line="191" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="candidate.rb" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/raft/state/candidate.rb">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.5813953">
+              <caret line="54" column="51" selection-start-line="54" selection-start-column="51" selection-end-line="54" selection-end-column="51" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="follower.rb" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/raft/state/follower.rb">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="-57.77778">
+              <caret line="104" column="91" selection-start-line="104" selection-start-column="91" selection-end-line="104" selection-end-column="91" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="state.rb" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/raft/state/state.rb">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="22" column="5" selection-start-line="22" selection-start-column="5" selection-end-line="22" selection-end-column="5" />
               <folding />
             </state>
           </provider>
@@ -88,41 +103,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="dc2.rb" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/raft/dc2.rb">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="0" column="30" selection-start-line="0" selection-start-column="30" selection-end-line="0" selection-end-column="30" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="candidate.rb" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/raft/state/candidate.rb">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="9" column="50" selection-start-line="9" selection-start-column="50" selection-end-line="9" selection-end-column="50" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="dc3.rb" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/raft/dc3.rb">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
               <caret line="6" column="7" selection-start-line="6" selection-start-column="7" selection-end-line="6" selection-end-column="7" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="state.rb" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/raft/state/state.rb">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="11" column="33" selection-start-line="11" selection-start-column="33" selection-end-line="11" selection-end-column="33" />
               <folding />
             </state>
           </provider>
@@ -175,14 +160,14 @@
         <option value="$PROJECT_DIR$/raft/config.rb" />
         <option value="$PROJECT_DIR$/raft/client.rb" />
         <option value="$PROJECT_DIR$/raft/state/follower.rb" />
-        <option value="$PROJECT_DIR$/raft/state/candidate.rb" />
-        <option value="$PROJECT_DIR$/raft/state/leader.rb" />
         <option value="$PROJECT_DIR$/raft/storage/log_container.rb" />
         <option value="$PROJECT_DIR$/raft/dc2.rb" />
         <option value="$PROJECT_DIR$/raft/dc3.rb" />
-        <option value="$PROJECT_DIR$/raft/data_center.rb" />
         <option value="$PROJECT_DIR$/raft/dc1.rb" />
         <option value="$PROJECT_DIR$/raft/misc.rb" />
+        <option value="$PROJECT_DIR$/raft/state/leader.rb" />
+        <option value="$PROJECT_DIR$/raft/data_center.rb" />
+        <option value="$PROJECT_DIR$/raft/state/candidate.rb" />
       </list>
     </option>
   </component>
@@ -195,9 +180,9 @@
     <order />
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="45" />
+    <option name="x" value="43" />
     <option name="y" value="23" />
-    <option name="width" value="1635" />
+    <option name="width" value="1637" />
     <option name="height" value="1027" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
@@ -640,7 +625,7 @@
     <option name="totallyTimeSpent" value="5155000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="45" y="23" width="1635" height="1027" extended-state="6" />
+    <frame x="43" y="23" width="1637" height="1027" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3298647" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
@@ -648,7 +633,7 @@
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24967825" sideWeight="0.4951049" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.16384181" sideWeight="0.45393634" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.16363636" sideWeight="0.45393634" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3496358" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.29968783" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3453125" sideWeight="0.54606366" order="2" side_tool="true" content_ui="tabs" />
@@ -864,34 +849,18 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/raft/state/follower.rb">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-16.666666">
-          <caret line="71" column="45" selection-start-line="71" selection-start-column="45" selection-end-line="71" selection-end-column="45" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/raft/state/leader.rb">
+    <entry file="file://$PROJECT_DIR$/raft/dc3.rb">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="84" column="24" selection-start-line="84" selection-start-column="24" selection-end-line="84" selection-end-column="24" />
+          <caret line="6" column="7" selection-start-line="6" selection-start-column="7" selection-end-line="6" selection-end-column="7" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/raft/storage/log_container.rb">
+    <entry file="file://$PROJECT_DIR$/raft/misc.rb">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.49612403">
-          <caret line="44" column="0" selection-start-line="44" selection-start-column="0" selection-end-line="44" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/raft/state/state.rb">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="11" column="33" selection-start-line="11" selection-start-column="33" selection-end-line="11" selection-end-column="33" />
+        <state vertical-scroll-proportion="0.7209302">
+          <caret line="31" column="9" selection-start-line="31" selection-start-column="9" selection-end-line="31" selection-end-column="9" />
           <folding />
         </state>
       </provider>
@@ -904,14 +873,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/raft/dc3.rb">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="6" column="7" selection-start-line="6" selection-start-column="7" selection-end-line="6" selection-end-column="7" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/raft/dc1.rb">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -920,26 +881,50 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/raft/data_center.rb">
+    <entry file="file://$PROJECT_DIR$/raft/storage/log_container.rb">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="216" column="25" selection-start-line="216" selection-start-column="25" selection-end-line="216" selection-end-column="25" />
+        <state vertical-scroll-proportion="0.42635658">
+          <caret line="83" column="10" selection-start-line="83" selection-start-column="10" selection-end-line="83" selection-end-column="10" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/raft/misc.rb">
+    <entry file="file://$PROJECT_DIR$/raft/state/state.rb">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.18604651">
-          <caret line="57" column="24" selection-start-line="57" selection-start-column="24" selection-end-line="57" selection-end-column="24" />
+        <state vertical-scroll-proportion="0.0">
+          <caret line="22" column="5" selection-start-line="22" selection-start-column="5" selection-end-line="22" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/raft/state/follower.rb">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-57.77778">
+          <caret line="104" column="91" selection-start-line="104" selection-start-column="91" selection-end-line="104" selection-end-column="91" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/raft/state/leader.rb">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="105" column="0" selection-start-line="105" selection-start-column="0" selection-end-line="105" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/raft/data_center.rb">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="191" column="0" selection-start-line="191" selection-start-column="0" selection-end-line="191" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/raft/state/candidate.rb">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="9" column="50" selection-start-line="9" selection-start-column="50" selection-end-line="9" selection-end-column="50" />
+        <state vertical-scroll-proportion="0.5813953">
+          <caret line="54" column="51" selection-start-line="54" selection-start-column="51" selection-end-line="54" selection-end-column="51" />
           <folding />
         </state>
       </provider>

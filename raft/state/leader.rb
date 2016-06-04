@@ -12,7 +12,7 @@ class Leader < State
   end
 
   # @description: Leader start
-  # 1. Set each peer's next_index to @logs.length (first empty slot index in local logs)
+  # 1. Set each peer's next_index to @logs.length (first empty slot index in local logs， i.e last log index + 1)
   # Set each peer's match_index to 0
   # 2. Start thread for each peer, periodically listen to heartbeat_timer
   # and send out appendEntries for each timeout, and handle the reply
@@ -41,7 +41,7 @@ class Leader < State
             begin
               append_entries_reply = nil
               Timeout.timeout(Misc::RPC_TIMEOUT) do
-                append_entries_reply = @datacenter.rpc_appendEntries(peer)
+                append_entries_reply = rpc_appendEntries(peer)
               end
               @logger.info "Peer #{peer.name} respond to appendEntries rpc with: #{append_entries_reply}"
               handle_appendEntries_reply append_entries_reply
@@ -61,6 +61,80 @@ class Leader < State
   end
 
 
+  # AppendEntries RPC
+  def rpc_appendEntries(peer)
+    call_id = Misc::generate_uuid
+    append_entries_message = {}
+    append_entries_message['term'] = @datacenter.current_term
+    # Consistency check
+    append_entries_message['prev_index'] = peer.next_index - 1
+    append_entries_message['prev_term'] = @datacenter.logs[peer.next_index - 1].term
+
+    # If there is only 1 difference between peer's next_index and match_index
+    # If next_index have entry (e.g, When leader just received on post), send it together
+    # Else just send empty entries
+    append_entries_message['entries'] = nil
+
+    if((peer.next_index - peer.match_index) == 1)
+      append_entries_message['entries'] = get_entry_at(peer.next_index)
+    end
+    append_entries_message['commit_index'] = commit_index
+
+    ch = @conn.create_channel
+    reply_queue  = ch.queue('', :exclusive => true)
+    reply_queue.bind(@datacenter.append_entries_direct_exchange, :routing_key => reply_queue.name)
+
+    @datacenter.append_entries_direct_exchange.publish(append_entries_message.to_json,
+                                            :expiration => Misc::RPC_TIMEOUT,
+                                            :routing_key => peer.append_entries_queue_name,
+                                            :correlation_id => call_id,
+                                            :reply_to=>reply_queue.name)
+    #Wait for response
+    response_result = nil
+    responded = false
+    while true
+      reply_queue.subscribe do |delivery_info, properties, payload|
+        if properties[:correlation_id] == call_id
+          response_result = payload
+          responded = true
+        end
+      end
+      break if responded
+    end
+    response_result
+  end
+
+
+  # @param payload [term, prev_index, prev_term, entries, commit_index]
+  # @description: Should be an error case
+  def respond_to_append_entries(delivery_info, properties, payload)
+    raise 'Error! Double leader condition.'
+  end
+
+
+  # @param payload [term, candidate_name, last_log_index, last_log_term]
+  # @description: If discover greater term, change term and step down. Will not handle this message.
+  # If received lower or equal term peer's vote request, reply false
+  # @sent_message request_vote_reply[:term, :granted, :from]
+  def respond_to_vote_request(delivery_info, properties, payload)
+    payload = JSON.parse(payload)
+    if payload['term'] > @datacenter.current_term
+      @datacenter.change_term payload['term']
+      @datacenter.change_state (Follower.new(@datacenter))
+    else
+      request_vote_reply = {}
+      request_vote_reply['term'] = @datacenter.current_term
+      request_vote_reply['granted'] = false
+      request_vote_reply['from'] = @datacenter.name
+      @datacenter.request_vote_direct_exchange.publish(request_vote_reply.to_json,
+                                                       :routing_key => properties.reply_to,
+                                                       :correlation_id => properties.correlation_id)
+    end
+  end
+
+
+
+
   # @param append_entries_reply[term, success, match_index, from]
   # @description: Leader handle appendEntries reply from peer
   # 1. Change match_index if success. Add one peer's ack for entry
@@ -72,7 +146,7 @@ class Leader < State
 
     peer = @datacenter.peers[append_entries_reply['from']]
 
-    #分两种情况，一种是之前的matchIndex和现在的不一样，这种情况只把matchIndex向前提，下一轮会发nextIndex位置的元素
+    #分两种情况，一种是之前的matchIndex和现在的不一样，这种情况只把matchIndex向前提到nextIndex的前一个位置，下一轮会发nextIndex位置的元素
     #第二种情况是之前的matchIndex和现在的一样，这种情况我们可以知道之前一轮的matchIndex和nextIndex只差一个，应该是把nextIndex的元素发出去了
     #这种情况双指针向前进
     if append_entries_reply['success']
