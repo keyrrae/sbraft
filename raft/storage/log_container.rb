@@ -86,7 +86,7 @@ module LogContainer
         break
       end
     end
-    if (current_term_entry == nil or current_term_entry.ack_peers.size < current_term_entry.quorum)
+    if (current_term_entry == nil or !is_quorum?(current_term_entry.ack_peers, current_term_entry.current_peers_set, current_term_entry.new_peers_set))
       return false
     else
       return true
@@ -190,14 +190,15 @@ module LogContainer
 
 
   # @description: LogEntry
-  # 1. ack_peers is a set recording how many peers has ack this LogEntry(i.e store this entry in their local log)
-  # 2. quorum is a set of DC names. When we check if this entry could be marked as COMMITTED, just check if ack_peers set
-  # has more than half of DC in quorum set. (For usual case where no configuration change is happening. Config change scenario described below)
-  # 3. is_special indicate whether this is a configuration change message.  When it's a configuration change message.
-  class LogEntry
-    attr_accessor(:term, :type, :message, :ack_peers, :current_peers_set, :new_peers_set, :is_special)
+  # 1. ack_peers is a set recording which peers have ack this LogEntry(i.e store this entry in their local log)
+  # 2. current_peers_set is the current configuration for this log entry, must not be nil.
+  # 3. new_peers_set is the new configuration for this log entry, not nil when there is a configuration change.
+  # 4. is_special and phase indicating if this is a config change log and which phase [C(old,new) = 1 or C(new) = 2] it is.
 
-    def initialize(term, type, message, current_peers_set, new_peers_set = nil, is_special = false)
+  class LogEntry
+    attr_accessor(:term, :type, :message, :ack_peers, :current_peers_set, :new_peers_set, :is_special, :phase)
+
+    def initialize(term, type, message, current_peers_set, new_peers_set = nil, is_special = false, phase = -1)
       @term = term
       @type = type
       @message = message
@@ -209,6 +210,7 @@ module LogContainer
       @current_peers_set = current_peers_set
       @new_peers_set = new_peers_set
       @is_special = is_special
+      @phase = phase
     end
 
     def to_json(options = {})

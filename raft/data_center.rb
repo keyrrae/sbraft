@@ -18,7 +18,11 @@ class DataCenter
                 :conn,
                 :current_term,
                 :current_state,
+
+                :current_peers_set,
+                :new_peers_set,
                 :peers,
+
                 :store,
                 :logs,
                 :append_entries_direct_exchange,
