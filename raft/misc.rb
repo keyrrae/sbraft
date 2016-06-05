@@ -65,6 +65,9 @@ module Misc
   BASE_ELECTION_TIMEOUT = 8.freeze
   #For both AppendEntries RPC and Request Vote RPC. This is used by each Peer object for a Datacenter. In second
   RPC_TIMEOUT = 2.freeze
+
+  CLIENT_POST_TIMEOUT = 3 * RPC_TIMEOUT
+
   #For calculating when to send an AppendEntries request to peers. This is used by Datacenter object. Only Leader need this. In second
   HEARTBEAT_TIMEOUT = 2.freeze
   #The interval for each state main loop

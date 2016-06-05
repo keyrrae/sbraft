@@ -170,22 +170,36 @@ class DataCenter
     # if I am the leader, I'll add the message to my logs
     if @current_state.is_a?(Leader)
       #@logs << payload.to_s
-      add_log_entry(payload)
+      ind = add_log_entry(payload)
       @logger.info "#{all_log_to_string}"
+      while true
+        if @logs[ind].type == Misc::COMMITTED
+          break
+        end
+        sleep(Misc::STATE_LOOP_INTERVAL)
+      end
       @client_post_direct_exchange.publish('Successfully posted',
                                            :routing_key => properties.reply_to,
                                            :correlation_id => properties.correlation_id)
     # if I am not the leader, I'll forward the message to leader
     elsif @current_state.is_a?(Follower)
-      @client_post_direct_exchange.publish(payload,
-                                           :routing_key => properties.reply_to,
-                                           :correlation_id => properties.correlation_id)
+      if @leader.nil?
+        @client_post_direct_exchange.publish('Failed, no leader',
+                                             :routing_key => properties.reply_to,
+                                             :correlation_id => properties.correlation_id)
+      else
+        @client_post_direct_exchange.publish(payload,
+                                            :routing_key => "#{@leader}_client_post_queue",
+                                             :reply_to => properties.reply_to,
+                                            :correlation_id => properties.correlation_id)
+      end
+
     end
   end
 
   def respond_to_lookup(delivery_info, properties, payload)
     # send my committed logs to client
-    @client_lookup_direct_exchange.publish(all_log_to_string,
+    @client_lookup_direct_exchange.publish(committed_log_to_string,
                                            :routing_key => properties.reply_to,
                                            :correlation_id => properties.correlation_id)
 

@@ -41,6 +41,7 @@ module LogContainer
     # Self-ack
     peer_ack(@logs.length - 1,@name)
     flush
+    @logs.length - 1
   end
 
 

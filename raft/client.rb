@@ -29,20 +29,26 @@ class Client
 
   #TODO
   def client_post_rpc(message)
-    puts "#{message}"
+
     ch = @conn.create_channel
     reply_queue  = ch.queue('', :exclusive => true)
     call_id = Misc::generate_uuid
-    puts "#{call_id}"
+
     reply_queue.bind(@client_post_direct_exchange, :routing_key => reply_queue.name)
 
     @client_post_direct_exchange.publish(message,
                                          :routing_key => @dc_client_post_queue_name,
+                                         :expiration => Misc::CLIENT_POST_TIMEOUT,
                                          :correlation_id => call_id,
                                          :reply_to => reply_queue.name)
     response_result = nil
     responded = false
+    t = Misc::Timer.new(Misc::CLIENT_POST_TIMEOUT)
     while true
+      if t.timeout?
+        response_result = 'Post failed due to timeout'
+        return response_result
+      end
       reply_queue.subscribe do |delivery_info, properties, payload|
         if properties[:correlation_id] == call_id
           response_result = payload.to_s
@@ -219,7 +225,7 @@ class ClientRequest
 end
 
 
-c = Client.new('169.231.10.109', 'dc1')
+c = Client.new('169.231.10.109', 'dc2')
 c.run
 
 
