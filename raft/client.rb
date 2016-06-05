@@ -169,7 +169,7 @@ class CommandInterface
             # TODO: post message
             normal_msg = {}
             normal_msg['type'] = 'normal'
-            normal_msg['msg'] = cmd_parsed[1]
+            normal_msg['message'] = cmd_parsed[1]
             response = @client.client_post_rpc(normal_msg.to_json)
             puts response
             @client.counter += 1
@@ -198,8 +198,7 @@ class CommandInterface
                 puts 'Changing configuration'
                 conf_change_message = {}
                 conf_change_message['type'] = 'config'
-                conf_change_message['num_datacenter'] = dc_num
-                conf_change_message['list_datacenter'] = dc_names_parsed
+                conf_change_message['message'] = dc_names_parsed
                 response = @client.client_post_rpc(conf_change_message.to_json)
                 puts response
                 @client.counter += 1

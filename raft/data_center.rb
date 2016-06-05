@@ -48,7 +48,9 @@ class DataCenter
     @voted_for = nil
 
     # Volatile State, map: name=>Peer
-    @peers = {}
+    @peers = {} #Store object
+    @current_peers_set = Set.new([]) #Store name
+    @new_peers_set = Set.new([])
 
 
     @logs = []
@@ -62,6 +64,10 @@ class DataCenter
     #Read configuration and storage
     read_config
     read_storage
+
+    #Create @peers from @current_peers_set
+    create_peers
+
 
     # Setup MQ
     @conn = Bunny.new(:hostname => ip)
@@ -98,6 +104,17 @@ class DataCenter
       @current_state = Leader.new(self)
     else
       @current_state = Follower.new(self)
+    end
+  end
+
+  # @description: Fill @peers according to the name in @current_peers_set union @new_peers_set
+  def create_peers
+    @peers.clear
+    union_set = @current_peers_set + @new_peers_set
+    union_set.each do |peer_name|
+      if peer_name != @name
+        @peers << Peer.new(peer_name)
+      end
     end
   end
 
@@ -157,7 +174,7 @@ class DataCenter
       end
 
       @client_post_queue.subscribe do |delivery_info, properties, payload|
-        respond_to_post delivery_info, properties, payload
+        @current_state.respond_to_post delivery_info, properties, payload
       end
 
       @client_lookup_queue.subscribe do |delivery_info, properties, payload|
@@ -169,37 +186,6 @@ class DataCenter
 
   end
 
-  def respond_to_post(delivery_info, properties, payload)
-
-    # if I am the leader, I'll add the message to my logs
-    if @current_state.is_a?(Leader)
-      #@logs << payload.to_s
-      ind = add_log_entry(payload)
-      @logger.info "#{all_log_to_string}"
-      while true
-        if @logs[ind].type == Misc::COMMITTED
-          break
-        end
-        sleep(Misc::STATE_LOOP_INTERVAL)
-      end
-      @client_post_direct_exchange.publish('Successfully posted',
-                                           :routing_key => properties.reply_to,
-                                           :correlation_id => properties.correlation_id)
-    # if I am not the leader, I'll forward the message to leader
-    elsif @current_state.is_a?(Follower)
-      if @leader.nil?
-        @client_post_direct_exchange.publish('Failed, no leader',
-                                             :routing_key => properties.reply_to,
-                                             :correlation_id => properties.correlation_id)
-      else
-        @client_post_direct_exchange.publish(payload,
-                                            :routing_key => "#{@leader}_client_post_queue",
-                                             :reply_to => properties.reply_to,
-                                            :correlation_id => properties.correlation_id)
-      end
-
-    end
-  end
 
   def respond_to_lookup(delivery_info, properties, payload)
     # send my committed logs to client

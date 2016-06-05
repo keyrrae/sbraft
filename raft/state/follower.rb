@@ -108,6 +108,21 @@ class Follower < State
   end
 
 
+  # @param: payload[type(normal,config),num_datacenter,list_datacenter(list),message]
+  def respond_to_post(delivery_info, properties, payload)
+      if @datacenter.leader.nil?
+        @datacenter.client_post_direct_exchange.publish('Failed, no leader',
+                                             :routing_key => properties.reply_to,
+                                             :correlation_id => properties.correlation_id)
+      else
+        @datacenter.client_post_direct_exchange.publish(payload,
+                                             :routing_key => "#{@datacenter.leader}_client_post_queue",
+                                             :reply_to => properties.reply_to,
+                                             :correlation_id => properties.correlation_id)
+      end
+  end
+
+
   # @param payload[:term,:candidate_name,:last_log_index,:last_log_term]
   # @description Should I grant vote?
   def grant_vote?(payload)

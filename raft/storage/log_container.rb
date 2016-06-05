@@ -34,9 +34,10 @@ module LogContainer
   end
 
   # @description: Invoked only by Leader. Accept client's request and
+  # def LogEntry.initialize(term, type, message, current_peers_set, new_peers_set = nil, is_special = false, phase = -1)
   # append one log entry to Logs, with self-ack this log entry.
-  def add_log_entry(message)
-    entry =  LogEntry.new(@current_term, Misc::PREPARE, message, @peers.length/2 + 1)
+  def add_normal_log_entry(message)
+    entry =  LogEntry.new(@current_term, Misc::PREPARE, message, @current_peers_set, @new_peers_set)
     @logs << entry
     # Self-ack
     peer_ack(@logs.length - 1,@name)
@@ -44,6 +45,14 @@ module LogContainer
     @logs.length - 1
   end
 
+  # @description: message: array of new config
+  def add_config_log_entry(message)
+    entry = LogEntry.new(@current_term, Misc::PREPARE, message.to_s, @current_peers_set, @new_peers_set, true, 1)
+    @logs << entry
+    peer_ack(@logs.length - 1, @name)
+    flush
+    @logs.length - 1
+  end
 
 
   # @description: Invoked only by leader. An entry got a peer's ack. Will commit if reach quorum.
@@ -105,7 +114,7 @@ module LogContainer
     end
     return false if current_quorum < (current_peers_set.length/2 + 1)
 
-    unless new_peers_set.nil?
+    unless new_peers_set.empty?
       new_quorum = new_peers_set.select do |e|
         ack_peers.include? e
       end
@@ -205,6 +214,7 @@ module LogContainer
       # A list of DC names. When
       # @quorum = quorum
       # Creator must ack it
+      # Will not include in json
       @ack_peers = Set.new([])
       # Is that a Configuration change log
       @current_peers_set = current_peers_set
@@ -214,11 +224,17 @@ module LogContainer
     end
 
     def to_json(options = {})
-      {'term'=> @term, 'type'=> @type, 'message'=>@message, 'quorum'=>@quorum, 'is_special'=>@is_special}.to_json
+      {'term'=> @term,
+       'type'=> @type,
+       'message'=>@message,
+       'current_peers_set' => @current_peers_set,
+       'new_peers_set'=>@new_peers_set,
+       'is_special'=>@is_special,
+       'phase' => @phase}.to_json
     end
 
     def self.from_hash (data)
-      self.new data['term'],data['type'],data['message'],data['quorum'], data['is_special']
+      self.new data['term'],data['type'],data['message'], data['current_peers_set'], data['new_peers_set'], data['is_special'], data['phase']
     end
 
     def to_s

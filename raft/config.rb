@@ -1,17 +1,16 @@
 require 'pstore'
 require 'pathname';
 module Config
+
+  # @description: Read current_peers_set from config.txt
   def read_config
     @cfg_filename = Misc::ROOT_DIR + '/configuration.txt'
     file = File.open(@cfg_filename, 'r')
     @logger.info "Read configuration file #{@cfg_filename}"
     file.readlines.each do |line|
       dc_name = line.strip
-      if dc_name != self.name
-        @peers[dc_name] = Peer.new(dc_name)
-      end
+      @current_peers_set << dc_name
     end
-
   end
 
   # @description: Persistent state: [current_term, voted_for, logs]
