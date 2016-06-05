@@ -94,6 +94,27 @@ module LogContainer
 
   end
 
+  # @description: Test if ack_peers contains majority of current_peers_list if new_peers_list is not provided.
+  # Otherwise test if ack_peers contains majority of both current_peers_list new_peers_list
+  # @param: ack_peers: set of acknowledged peer's name
+  # @param: current_peers_set: set of current peer's name
+  # @param: new_peers_list: If in configuration change state, this will be considered
+  def is_quorum? (ack_peers, current_peers_set, new_peers_set)
+    current_quorum = current_peers_set.select do |e|
+      ack_peers.include? e
+    end
+    return false if current_quorum < (current_peers_set.length/2 + 1)
+
+    unless new_peers_set.nil?
+      new_quorum = new_peers_set.select do |e|
+        ack_peers.include? e
+      end
+      return false if new_quorum < (new_peers_set.length/2 + 1)
+    end
+
+    true
+  end
+
   # @description: Invoked only by non-leader. Add entry at specific index
   # and clear all entries after this index. Do not self-ack this entry.
   # TODO Not tested
@@ -174,17 +195,19 @@ module LogContainer
   # has more than half of DC in quorum set. (For usual case where no configuration change is happening. Config change scenario described below)
   # 3. is_special indicate whether this is a configuration change message.  When it's a configuration change message.
   class LogEntry
-    attr_accessor(:term, :type, :message, :ack_peers, :quorum, :is_special)
+    attr_accessor(:term, :type, :message, :ack_peers, :current_peers_set, :new_peers_set, :is_special)
 
-    def initialize(term, type, message, quorum, is_special = false)
+    def initialize(term, type, message, current_peers_set, new_peers_set = nil, is_special = false)
       @term = term
       @type = type
       @message = message
       # A list of DC names. When
-      @quorum = quorum
+      # @quorum = quorum
       # Creator must ack it
       @ack_peers = Set.new([])
       # Is that a Configuration change log
+      @current_peers_set = current_peers_set
+      @new_peers_set = new_peers_set
       @is_special = is_special
     end
 
