@@ -66,7 +66,10 @@ module LogContainer
     # to see if previous logs need to be committed
     (1..entry_index).each do |index|
       if @logs[index].ack_peers.size >= @logs[index].quorum
-        @logs[index].type = Misc::COMMITTED
+        if @logs[index].type != Misc::COMMITTED
+          @logger.info "Leader is committing #{@logs[index]}"
+          @logs[index].type = Misc::COMMITTED
+        end
       end
     end
 
@@ -74,7 +77,7 @@ module LogContainer
   end
 
   # @tested
-  # @description: Check if current logs contains a current term entry that acknowledged by majority of servers
+  # @description: Invoked only by leader. Check if current logs contains a current term entry that acknowledged by majority of servers
   def majority_ack_current_term_entry?
     current_term_entry = nil
     @logs.each do |log|
@@ -165,26 +168,32 @@ module LogContainer
 
 
 
-
+  # @description: LogEntry
+  # 1. ack_peers is a set recording how many peers has ack this LogEntry(i.e store this entry in their local log)
+  # 2. quorum is a set of DC names. When we check if this entry could be marked as COMMITTED, just check if ack_peers set
+  # has more than half of DC in quorum set. (For usual case where no configuration change is happening. Config change scenario described below)
+  # 3. is_special indicate whether this is a configuration change message.  When it's a configuration change message.
   class LogEntry
-    attr_accessor(:term, :type, :message, :ack_peers, :quorum)
+    attr_accessor(:term, :type, :message, :ack_peers, :quorum, :is_special)
 
-    def initialize(term, type, message, quorum)
+    def initialize(term, type, message, quorum, is_special = false)
       @term = term
       @type = type
       @message = message
-      # Quorum num for this entry
+      # A list of DC names. When
       @quorum = quorum
       # Creator must ack it
       @ack_peers = Set.new([])
+      # Is that a Configuration change log
+      @is_special = is_special
     end
 
     def to_json(options = {})
-      {'term'=> @term, 'type'=> @type, 'message'=>@message, 'quorum'=>@quorum}.to_json
+      {'term'=> @term, 'type'=> @type, 'message'=>@message, 'quorum'=>@quorum, 'is_special'=>@is_special}.to_json
     end
 
     def self.from_hash (data)
-      self.new data['term'],data['type'],data['message'],data['quorum']
+      self.new data['term'],data['type'],data['message'],data['quorum'], data['is_special']
     end
 
     def to_s
