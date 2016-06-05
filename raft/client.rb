@@ -87,6 +87,7 @@ class Client
 
   end
 
+
   def run
     # Producer
     t1 = Thread.new do
@@ -125,6 +126,11 @@ class CommandInterface
 
     puts 'lookup(l)'
     puts '  - Display the posts in DS-blog in casual order'
+    puts ''
+
+    puts 'change(c) <newNumberOfNodes> <newServerList>'
+    puts '  - Change current configuration to the new configuration'
+    puts '  - newSeverList is a comma separated list of data centers'
     puts ''
 
     puts 'help(h)'
@@ -172,12 +178,38 @@ class CommandInterface
           # TODO: look up function
           response = @client.client_lookup_rpc
           puts response
+
+        when 'change', 'c'
+          cmd_parsed = cmd.strip.split(' ', 3)
+          if cmd_parsed.length != 3 or cmd_parsed[2].include? ' '
+            puts 'Illegal configuration change command'
+          else
+            dc_num = cmd_parsed[1].to_i
+            if dc_num == 0
+              puts 'Illegal number of servers'
+            else
+              dc_names_parsed = cmd_parsed[2].split(',')
+              if dc_names_parsed.length != dc_num
+                puts "Number of datacenters doesn't match with datacenter list"
+              else
+                puts 'Changing configuration'
+                conf_change_message = {}
+                conf_change_message['num_datacenter'] = dc_num
+                conf_change_message['list_datacenter'] = dc_names_parsed
+                response = @client.client_post_rpc(conf_change_message.to_json)
+                puts response
+                @client.counter += 1
+              end
+            end
+          end
+
         when 'exit' , 'e', 'quit', 'q'
           puts 'Exiting'
           exit(0)
 
         when 'help', 'h'
           print_commands
+
         else
           puts 'Wrong command, type "help" or "h" for help.'
       end
