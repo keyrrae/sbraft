@@ -111,6 +111,7 @@ class Follower < State
     if request_vote_reply[:granted]
       @datacenter.change_term payload['term']
       @datacenter.voted_for = payload['candidate_name']
+      @datacenter.flush
       @election_timer.reset_timer
     end
 

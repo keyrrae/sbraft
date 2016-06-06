@@ -1,5 +1,5 @@
 require 'pstore'
-require 'pathname';
+require 'pathname'
 module Config
 
   # @description: Read current_peers_set from config.txt

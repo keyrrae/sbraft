@@ -144,11 +144,13 @@ class DataCenter
   def new_term
     @current_term += 1
     reset
+    flush
   end
 
   def change_term(term)
     @current_term = term
     reset
+    flush
   end
 
   # @description: triggered when there is a new term

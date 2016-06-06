@@ -20,6 +20,7 @@ class Candidate < State
     # Will increment Datacenter term and reset peers
     @datacenter.new_term
     @datacenter.voted_for = @datacenter.name
+    @datacenter.flush
 
   end
 
@@ -30,7 +31,7 @@ class Candidate < State
   # If not, invoke RequestVoteRPC and mark it as queried if responded(no matter granted or not)
   # 4. Handle peer's response by handle_request_vote_reply
   def run
-    @logger.info 'Candidate state start'
+    @logger.info "Candidate state start, Candidate term #{@datacenter.current_term}"
     threads = []
 
     @datacenter.peers.values.each do |peer|
@@ -43,6 +44,8 @@ class Candidate < State
 
             @datacenter.new_term
             @datacenter.voted_for = @datacenter.name
+            @datacenter.flush
+
           end
 
           if @status == Misc::KILLED_STATE

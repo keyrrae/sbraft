@@ -158,11 +158,12 @@ module LogContainer
     s = ''
     index = 1
     @logs.each do |log_entry|
-      if log_entry.type == Misc::COMMITTED
+      if log_entry.type == Misc::COMMITTED && !log_entry.is_special
         s = "#{s}\n#{index}\t#{log_entry.message}"
         index += 1
       end
     end
+    s += "Current Configuration: #{@current_peers_set.to_a}. New Configuration #{@new_peers_set.to_a}"
     s = "#{s}\n\n"
     s
   end
@@ -191,6 +192,8 @@ module LogContainer
     @store = PStore.new("#{@name}.pstore")
     @store.transaction do
       @store[:logs] = @logs
+      @store[:current_term] = @current_term
+      @store[:voted_for] = @voted_for
     end
   end
 
