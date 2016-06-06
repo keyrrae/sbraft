@@ -104,6 +104,9 @@ class DataCenter
 
   def stop_state
     @current_state.status = Misc::KILLED_STATE
+    @current_state.threads.each do |thread|
+      Thread.kill(thread)
+    end
   end
 
   def start_state

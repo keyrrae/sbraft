@@ -3,13 +3,15 @@ require_relative './state_module'
 class State
   attr_accessor :datacenter,
                 :election_timer,
-                :status #Running or killed
+                :status, #Running or killed
+                :threads
 
   def initialize(datacenter)
     @datacenter = datacenter
     #Timer for election
     @election_timer = Misc::Timer.new(Misc.RANDOM_ELECTION_TIMEOUT)
     @status = Misc::RUNNING_STATE
+    @threads = []
   end
 
   #Need to be handled in specific code. When status is killed,

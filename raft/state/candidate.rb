@@ -31,12 +31,11 @@ class Candidate < State
   # 4. Handle peer's response by handle_request_vote_reply
   def run
     @logger.info 'Candidate state start'
-    threads = []
+    @threads = []
 
     @datacenter.peers.values.each do |peer|
-      threads << Thread.new do
+      @threads << Thread.new do
         loop do
-
           if @election_timer.timeout?
             @logger.info "Term #{@datacenter.current_term} timeout. Increase term."
             @election_timer.reset_timer
@@ -45,9 +44,6 @@ class Candidate < State
             @datacenter.voted_for = @datacenter.name
           end
 
-          if @status == Misc::KILLED_STATE
-            Thread.stop
-          end
           # Make sure won't query a peer that's already responded
           if !peer.queried
             begin
@@ -66,8 +62,10 @@ class Candidate < State
         end
       end
     end
-
-    threads.each do |thread|
+    counter = 0
+    @threads.each do |thread|
+      counter +=1
+      @logger.info "#{counter} join"
       thread.join
     end
     @logger.info 'Candidate state end'
