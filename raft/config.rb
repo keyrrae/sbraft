@@ -29,7 +29,7 @@ module Config
       @store = PStore.new("#{@name}.pstore")
 
       # Create an empty log. Log's index start at 1 and add a stub
-      @logs = [LogContainer::LogEntry.new(0,Misc::COMMITTED,'Empty', @peers.length/2 + 1)]
+      @logs = [LogContainer::LogEntry.new(0,Misc::COMMITTED,'Empty', Set.new([]), Set.new([]))]
 
       @store.transaction do
         @store[:current_term] = 1

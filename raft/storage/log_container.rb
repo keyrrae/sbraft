@@ -74,14 +74,13 @@ module LogContainer
     # If there is a majority of servers that ack a current term entry, go through all previous log
     # to see if previous logs need to be committed
     (1..entry_index).each do |index|
-      if @logs[index].ack_peers.size >= @logs[index].quorum
+      if is_quorum?(@logs[index].ack_peers,@logs[index].current_peers_set, @logs[index].new_peers_set)
         if @logs[index].type != Misc::COMMITTED
           @logger.info "Leader is committing #{@logs[index]}"
           @logs[index].type = Misc::COMMITTED
         end
       end
     end
-
     flush
   end
 
@@ -112,13 +111,13 @@ module LogContainer
     current_quorum = current_peers_set.select do |e|
       ack_peers.include? e
     end
-    return false if current_quorum < (current_peers_set.length/2 + 1)
+    return false if current_quorum.length < (current_peers_set.length/2 + 1)
 
     unless new_peers_set.empty?
       new_quorum = new_peers_set.select do |e|
         ack_peers.include? e
       end
-      return false if new_quorum < (new_peers_set.length/2 + 1)
+      return false if new_quorum.length < (new_peers_set.length/2 + 1)
     end
 
     true
@@ -207,7 +206,7 @@ module LogContainer
   class LogEntry
     attr_accessor(:term, :type, :message, :ack_peers, :current_peers_set, :new_peers_set, :is_special, :phase)
 
-    def initialize(term, type, message, current_peers_set, new_peers_set = nil, is_special = false, phase = -1)
+    def initialize(term, type, message, current_peers_set, new_peers_set, is_special = false, phase = -1)
       @term = term
       @type = type
       @message = message

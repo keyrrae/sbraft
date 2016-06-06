@@ -5,5 +5,7 @@ t1 = Thread.new do
   dc1.run
 end
 
-t1.join
 
+while true
+  sleep(5)
+end

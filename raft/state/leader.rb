@@ -5,10 +5,10 @@ class Leader < State
 
   def initialize(datacenter_context)
     super(datacenter_context)
-    @leader = @name
+    @leader = @datacenter.name
     @logger = Logger.new($stdout)
     @logger.formatter = proc do |severity, datetime, progname, msg|
-      "[#{datetime}] #{@datacenter.name}(Leader): #{msg}\n\n"
+      "[#{datetime}] #{Thread.current} #{@datacenter.name}(Leader): #{msg}\n\n"
     end
   end
 
@@ -32,7 +32,7 @@ class Leader < State
       @threads << Thread.new do
         loop do
           #Break out the loop and state come to end if state got killed
-          if @status == Misc::KILLED_STATE || @change_state
+          if @status == Misc::KILLED_STATE
             Thread.kill(Thread.current)
           end
 
@@ -137,47 +137,7 @@ class Leader < State
   end
 
 
-  # @param: payload[type(normal,config),num_datacenter,list_datacenter(list),message]
-  def respond_to_post(delivery_info, properties, payload)
-    payload = JSON.parse(payload)
-    # if I am the leader, I'll add the message to my logs
-      if payload['type'] == 'normal'
-        #@logs << payload.to_s
-        ind = @datacenter.add_normal_log_entry(payload['message'])
-        @logger.info "#{@datacenter.all_log_to_string}"
-        while true
-          if @datacenter.logs[ind].type == Misc::COMMITTED
-            break
-          end
-          sleep(Misc::STATE_LOOP_INTERVAL)
-        end
-        @datacenter.client_post_direct_exchange.publish('Successfully posted',
-                                             :routing_key => properties.reply_to,
-                                             :correlation_id => properties.correlation_id)
 
-      else
-        #First phase
-        new_peers_set = Set.new(payload['message'])
-        @datacenter.new_peers_set = new_peers_set
-        @datacenter.create_peers
-
-        ind = @datacenter.add_config_log_entry(payload['message'])
-
-        #Stop old config, use intermediate config
-        #@datacenter.change_state (Leader.new(@datacenter))
-        @change_state = true
-        run
-        @change_state = false
-
-
-        while true
-          if @datacenter.logs[ind].type == Misc::COMMITTED
-            break
-          end
-          sleep(Misc::STATE_LOOP_INTERVAL)
-        end
-      end
-  end
 
 
   # @param append_entries_reply[term, success, match_index, from]

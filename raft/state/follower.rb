@@ -33,13 +33,16 @@ class Follower < State
   end
 
   # @param payload: [:term, :prev_index, :prev_term, :entries, :commit_index]
+  # entries: def LogEntry.initialize(term, type, message, current_peers_set, new_peers_set, is_special = false, phase = -1)
   # @sent_message: append_entries_reply: [:term, :success, :match_index, :from]
   # @description: Follower's Respond to appendEntries
   # 1. Update term if needed
-  # 2. Check prevIndex and matchIndex.
+  # 2. (1) If it's a normal log
+  # Check prevIndex and matchIndex.
   # Send success = false and match_index = 0 if not match
   # Send success = true and match_index = payload['prev_index'] if match
   # Then add entry if there is any, clear all the logs after this log
+  # (2) If it's a config log
   # 3. Commit Local log to commit_index
   def respond_to_append_entries(delivery_info, properties, payload)
     payload = JSON.parse(payload)
@@ -56,23 +59,31 @@ class Follower < State
 
     # Step 2
     append_entries_reply = {}
-    append_entries_reply['from'] = @datacenter.name
-    if ((payload['prev_index'] < @datacenter.logs.length) &&
-        @datacenter.logs[payload['prev_index']].term == payload['prev_term'])
-      append_entries_reply['success'] = true
-      append_entries_reply['match_index'] = payload['prev_index']
-      if !payload['entries'].nil?
-        # Will clean all logs after this index
-        @datacenter.add_entry_at_index(LogContainer::LogEntry.from_hash(payload['entries']), append_entries_reply['match_index'] + 1)
-      end
-    else
-      @logger.info "Respond False because payload['prev_index']=#{payload['prev_index']}, @datacenter.logs.length=#{@datacenter.logs.length}"
-      if @datacenter.logs[payload['prev_index']] != nil
+    if !payload['is_special']
+      append_entries_reply['from'] = @datacenter.name
+      if ((payload['prev_index'] < @datacenter.logs.length) &&
+          @datacenter.logs[payload['prev_index']].term == payload['prev_term'])
+        append_entries_reply['success'] = true
+        append_entries_reply['match_index'] = payload['prev_index']
+        if !payload['entries'].nil?
+          # Will clean all logs after this index
+          @datacenter.add_entry_at_index(LogContainer::LogEntry.from_hash(payload['entries']), append_entries_reply['match_index'] + 1)
+        end
+      else
+        @logger.info "Respond False because payload['prev_index']=#{payload['prev_index']}, @datacenter.logs.length=#{@datacenter.logs.length}"
+        if @datacenter.logs[payload['prev_index']] != nil
           @logger.info "@datacenter.logs[payload['prev_index']].term=#{@datacenter.logs[payload['prev_index']].term},payload['prev_term'] = #{payload['prev_term']}"
+        end
+        append_entries_reply['success'] = false
+        append_entries_reply['match_index'] = 0
       end
-      append_entries_reply['success'] = false
-      append_entries_reply['match_index'] = 0
+      #Change config
+    else
+      @datacenter.current_peers_set = Set.new(payload['current_peers_set'])
+      @datacenter.new_peers_set = Set.new(payload['new_peers_set'])
+      @datacenter.create_peers
     end
+
 
     # Step 3
     @datacenter.commit_log_till_index payload['commit_index']

@@ -37,7 +37,7 @@ class DataCenter
     @logger = Logger.new($stdout)
 
     @logger.formatter = proc do |severity, datetime, progname, msg|
-      "#{@name}: #{msg}\n"
+      "[#{datetime}] #{name}(#{@current_state.class}): #{msg}\n\n"
     end
 
     @leader = nil
@@ -113,7 +113,7 @@ class DataCenter
     union_set = @current_peers_set + @new_peers_set
     union_set.each do |peer_name|
       if peer_name != @name
-        @peers << Peer.new(peer_name)
+        @peers[peer_name] = Peer.new(peer_name)
       end
     end
   end
@@ -131,7 +131,7 @@ class DataCenter
     t = Thread.new do
       @current_state.run
     end
-    t.join
+    # t.join
   end
 
   def change_state(new_state)
@@ -221,13 +221,32 @@ class DataCenter
       #Stop old config, use intermediate config
       change_state (Leader.new(self))
 
-
+      #Wait committing
       while true
         if @logs[ind].type == Misc::COMMITTED
           break
         end
         sleep(Misc::STATE_LOOP_INTERVAL)
       end
+
+      @current_peers_set = @new_peers_set
+      @new_peers_set = Set.new()
+      create_peers
+
+      ind = add_config_log_entry(payload['message'])
+      change_state (Leader.new(self))
+
+      #Wait committing
+      while true
+        if @logs[ind].type == Misc::COMMITTED
+          break
+        end
+        sleep(Misc::STATE_LOOP_INTERVAL)
+      end
+      @client_post_direct_exchange.publish('Successfully changed',
+                                           :routing_key => properties.reply_to,
+                                           :correlation_id => properties.correlation_id)
+
     end
   end
 
@@ -294,9 +313,17 @@ end
 
 
 
-
-
-
+# dc3= DataCenter.new('dc3','169.231.10.109',true)
+# t3 = Thread.new do
+#   dc3.run
+# end
+#
+# sleep(10)
+# dc3.leader_respond_to_post(nil, nil, {'type'=>'config','message'=>['dc6','dc7','dc8']}.to_json)
+#
+# while(true)
+#   sleep(5)
+# end
 #
 # dc2 = DataCenter.new('dc2','169.231.10.109', true)
 # t2 = Thread.new do

@@ -4,4 +4,6 @@ t3 = Thread.new do
   dc3.run
 end
 
-t3.join
+while true
+  sleep(5)
+end
