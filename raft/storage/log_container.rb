@@ -226,14 +226,14 @@ module LogContainer
       {'term'=> @term,
        'type'=> @type,
        'message'=>@message,
-       'current_peers_set' => @current_peers_set,
-       'new_peers_set'=>@new_peers_set,
+       'current_peers_set' => @current_peers_set.to_a.to_json,
+       'new_peers_set'=>@new_peers_set.to_a.to_json,
        'is_special'=>@is_special,
        'phase' => @phase}.to_json
     end
 
     def self.from_hash (data)
-      self.new data['term'],data['type'],data['message'], data['current_peers_set'], data['new_peers_set'], data['is_special'], data['phase']
+      self.new data['term'],data['type'],data['message'], Set.new(JSON.parse(data['current_peers_set'])), Set.new(JSON.parse(data['new_peers_set'])), data['is_special'], data['phase']
     end
 
     def to_s

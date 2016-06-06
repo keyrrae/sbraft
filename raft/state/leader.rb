@@ -81,6 +81,7 @@ class Leader < State
       #get_entry_at may return an entry or nil if slot is empty
       append_entries_message['entries'] = @datacenter.get_entry_at(peer.next_index)
     end
+
     append_entries_message['commit_index'] = @datacenter.commit_index
 
     ch = @datacenter.conn.create_channel

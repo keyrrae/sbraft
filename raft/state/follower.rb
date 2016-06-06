@@ -59,13 +59,21 @@ class Follower < State
 
     # Step 2
     append_entries_reply = {}
-    if !payload['is_special']
+
+    is_special = payload['entries']!= nil and payload['entries']['is_special']
+
       append_entries_reply['from'] = @datacenter.name
       if ((payload['prev_index'] < @datacenter.logs.length) &&
           @datacenter.logs[payload['prev_index']].term == payload['prev_term'])
         append_entries_reply['success'] = true
         append_entries_reply['match_index'] = payload['prev_index']
         if !payload['entries'].nil?
+          # If this is a special log, change peers
+          if is_special
+            @datacenter.current_peers_set = Set.new(JSON.parse(payload['entries']['current_peers_set']))
+            @datacenter.new_peers_set = Set.new(JSON.parse(payload['entries']['new_peers_set']))
+            @datacenter.create_peers
+          end
           # Will clean all logs after this index
           @datacenter.add_entry_at_index(LogContainer::LogEntry.from_hash(payload['entries']), append_entries_reply['match_index'] + 1)
         end
@@ -78,11 +86,7 @@ class Follower < State
         append_entries_reply['match_index'] = 0
       end
       #Change config
-    else
-      @datacenter.current_peers_set = Set.new(payload['current_peers_set'])
-      @datacenter.new_peers_set = Set.new(payload['new_peers_set'])
-      @datacenter.create_peers
-    end
+
 
 
     # Step 3
