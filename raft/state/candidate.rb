@@ -46,7 +46,7 @@ class Candidate < State
           end
 
           if @status == Misc::KILLED_STATE
-            Thread.stop
+            Thread.kill(Thread.current)
           end
           # Make sure won't query a peer that's already responded
           if !peer.queried

@@ -27,13 +27,13 @@ class Leader < State
     end
 
     # Step 2
-    threads = []
+    @threads = []
     @datacenter.peers.values.each do |peer|
-      threads << Thread.new do
+      @threads << Thread.new do
         loop do
           #Break out the loop and state come to end if state got killed
           if @status == Misc::KILLED_STATE || @change_state
-            Thread.stop
+            Thread.kill(Thread.current)
           end
 
           #If HeartBeatTimer timeout, send another wave of AppendEntries
@@ -55,7 +55,7 @@ class Leader < State
         end
       end
     end
-    threads.each do |thread|
+    @threads.each do |thread|
       thread.join
     end
     @logger.info 'Leader state end'

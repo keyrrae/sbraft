@@ -174,8 +174,13 @@ class DataCenter
       end
 
       @client_post_queue.subscribe do |delivery_info, properties, payload|
-        @current_state.respond_to_post delivery_info, properties, payload
+        if @current_state.is_a? Leader
+          leader_respond_to_post delivery_info, properties, payload
+        elsif @current_state.is_a? Follower
+          follower_respond_to_post delivery_info, properties, payload
+        end
       end
+
 
       @client_lookup_queue.subscribe do |delivery_info, properties, payload|
         respond_to_lookup delivery_info, properties, payload
@@ -185,6 +190,62 @@ class DataCenter
       start_state
 
   end
+
+
+  # @param: payload[type(normal,config),num_datacenter,list_datacenter(list),message]
+  def leader_respond_to_post(delivery_info, properties, payload)
+    payload = JSON.parse(payload)
+    # if I am the leader, I'll add the message to my logs
+    if payload['type'] == 'normal'
+      #@logs << payload.to_s
+      ind = add_normal_log_entry(payload['message'])
+      @logger.info "#{all_log_to_string}"
+      while true
+        if @logs[ind].type == Misc::COMMITTED
+          break
+        end
+        sleep(Misc::STATE_LOOP_INTERVAL)
+      end
+      @client_post_direct_exchange.publish('Successfully posted',
+                                                      :routing_key => properties.reply_to,
+                                                      :correlation_id => properties.correlation_id)
+
+    else
+      #First phase
+      new_peers_set = Set.new(payload['message'])
+      @new_peers_set = new_peers_set
+      create_peers
+
+      ind = add_config_log_entry(payload['message'])
+
+      #Stop old config, use intermediate config
+      change_state (Leader.new(self))
+
+
+      while true
+        if @logs[ind].type == Misc::COMMITTED
+          break
+        end
+        sleep(Misc::STATE_LOOP_INTERVAL)
+      end
+    end
+  end
+
+  
+
+  def follower_respond_to_post(delivery_info, properties, payload)
+    if @leader.nil?
+      @client_post_direct_exchange.publish('Failed, no leader',
+                                                      :routing_key => properties.reply_to,
+                                                      :correlation_id => properties.correlation_id)
+    else
+      @client_post_direct_exchange.publish(payload,
+                                                      :routing_key => "#{@leader}_client_post_queue",
+                                                      :reply_to => properties.reply_to,
+                                                      :correlation_id => properties.correlation_id)
+    end
+  end
+
 
 
   def respond_to_lookup(delivery_info, properties, payload)
