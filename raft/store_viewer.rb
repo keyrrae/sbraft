@@ -2,7 +2,10 @@ require 'pstore'
 require_relative "../raft/storage/log_container"
 
 module StoreViewer
-def self.read_config(name)
+def self.read_config
+  puts 'Enter the datacenter name you want to view: \n'
+  name = gets.strip
+
   store = PStore.new("#{name}.pstore")
   puts "#{name}: \n"
   store.transaction do
@@ -16,5 +19,6 @@ def self.read_config(name)
 end
 end
 
-
-StoreViewer::read_config('dc1')
+while true
+  StoreViewer::read_config
+end

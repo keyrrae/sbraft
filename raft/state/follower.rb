@@ -36,14 +36,16 @@ class Follower < State
   # entries: def LogEntry.initialize(term, type, message, current_peers_set, new_peers_set, is_special = false, phase = -1)
   # @sent_message: append_entries_reply: [:term, :success, :match_index, :from]
   # @description: Follower's Respond to appendEntries
-  # 1. Update term if needed
-  # 2. (1) If it's a normal log
+  # 1. If leader's term is smaller than my current term, respond with [false, current_term, 0]
+  #
+  # 2. Update term if needed
+  # 3. (1) If it's a normal log
   # Check prevIndex and matchIndex.
   # Send success = false and match_index = 0 if not match
   # Send success = true and match_index = payload['prev_index'] if match
   # Then add entry if there is any, clear all the logs after this log
   # (2) If it's a config log
-  # 3. Commit Local log to commit_index
+  # 3. If response is success. Commit Local log to commit_index
   def respond_to_append_entries(delivery_info, properties, payload)
     payload = JSON.parse(payload)
     @election_timer.reset_timer
@@ -53,6 +55,18 @@ class Follower < State
     @datacenter.leader = payload['leader']
 
     # Step 1
+    if payload['term'] < @datacenter.current_term
+      append_entries_reply = {}
+      append_entries_reply['success'] = false
+      append_entries_reply['match_index'] = 0
+      append_entries_reply['term'] = @datacenter.current_term
+      @datacenter.append_entries_direct_exchange.publish(append_entries_reply.to_json,
+                                                         :routing_key => properties.reply_to,
+                                                         :correlation_id => properties.correlation_id)
+
+    end
+
+    # Step 2
     if payload['term'] > @datacenter.current_term
       @datacenter.change_term payload['term']
     end
@@ -90,7 +104,10 @@ class Follower < State
 
 
     # Step 3
-    @datacenter.commit_log_till_index payload['commit_index']
+    if append_entries_reply['success']
+      @datacenter.commit_log_till_index payload['commit_index']
+    end
+
 
     @datacenter.append_entries_direct_exchange.publish(append_entries_reply.to_json,
                                                        :routing_key => properties.reply_to,
