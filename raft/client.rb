@@ -36,14 +36,20 @@ class Client
 
     reply_queue.bind(@client_post_direct_exchange, :routing_key => reply_queue.name)
 
+    is_config_change = JSON.parse(message)
+    time_out = Misc::CLIENT_POST_TIMEOUT
+    if(is_config_change['type'] == 'config')
+      time_out = Misc::CLIENT_CONFIG_CHANGE_TIMEOUT
+    end
+
     @client_post_direct_exchange.publish(message,
                                          :routing_key => @dc_client_post_queue_name,
-                                         :expiration => Misc::CLIENT_POST_TIMEOUT,
+                                         :expiration => time_out,
                                          :correlation_id => call_id,
                                          :reply_to => reply_queue.name)
     response_result = nil
     responded = false
-    t = Misc::Timer.new(Misc::CLIENT_POST_TIMEOUT)
+    t = Misc::Timer.new(time_out)
     while true
       if t.timeout?
         response_result = 'Post failed due to timeout'
@@ -260,7 +266,7 @@ class ClientRequest
 end
 
 
-c = Client.new('169.231.10.109', 'dc2')
+c = Client.new('169.231.10.109', 'dc1')
 c.run
 
 

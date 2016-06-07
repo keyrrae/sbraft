@@ -8,7 +8,7 @@ class Leader < State
     @leader = @datacenter.name
     @logger = Logger.new($stdout)
     @logger.formatter = proc do |severity, datetime, progname, msg|
-      "[#{datetime}] #{Thread.current} #{@datacenter.name}(Leader): #{msg}\n\n"
+      "[#{datetime}] #{@datacenter.name}(Leader): #{msg}\n\n"
     end
   end
 
@@ -143,12 +143,20 @@ class Leader < State
 
   # @param append_entries_reply[term, success, match_index, from]
   # @description: Leader handle appendEntries reply from peer
-  # 1. Change match_index if success. Add one peer's ack for entry
+  # 1. If replied term is higher than current term. Change current term and step down.
+
+  # 2. Change match_index if success. Add one peer's ack for entry
   # at match_index if there is one at that pos (Will auto commit if needed).
   # Then forward next_index pointer if there is more logs to be sent
   # 2. Decrement next_index if failed
   def handle_appendEntries_reply(append_entries_reply)
     append_entries_reply = JSON.parse(append_entries_reply)
+
+    if append_entries_reply['term'] > @datacenter.current_term
+      @datacenter.change_term append_entries_reply['term']
+      @datacenter.change_state(Follower.new(@datacenter))
+      return
+    end
 
     peer = @datacenter.peers[append_entries_reply['from']]
 

@@ -67,7 +67,7 @@ module Misc
   RPC_TIMEOUT = 2.freeze
 
   CLIENT_POST_TIMEOUT = 3 * RPC_TIMEOUT
-
+  CLIENT_CONFIG_CHANGE_TIMEOUT = 10 * CLIENT_POST_TIMEOUT
   #For calculating when to send an AppendEntries request to peers. This is used by Datacenter object. Only Leader need this. In second
   HEARTBEAT_TIMEOUT = 2.freeze
   #The interval for each state main loop

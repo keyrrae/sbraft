@@ -163,7 +163,7 @@ module LogContainer
         index += 1
       end
     end
-    s += "Current Configuration: #{@current_peers_set.to_a}. New Configuration #{@new_peers_set.to_a}"
+    s += "\n Current Configuration: #{@current_peers_set.to_a}. New Configuration #{@new_peers_set.to_a}"
     s = "#{s}\n\n"
     s
   end
