@@ -1,3 +1,4 @@
+#!/usr/bin/ruby
 require_relative 'data_center'
 
 dc1 = DataCenter.new('dc1','169.231.10.109')
