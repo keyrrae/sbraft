@@ -114,25 +114,31 @@ class Follower < State
 
   end
 
-  # @description
+  # @description:
+  # 1. First check term, if payload's term is greater than my term, change term
+  # 2. Then check if i should grant the vote (According to the term, last_log_term and last_log_index)
+  #
   # @param payload[:term,:candidate_name,:last_log_index,:last_log_term] CAUTION: Cannot use symbol, must use string as key e.g: payload['term']
   # @sent_message request_vote_reply[:term, :granted, :from]
   def respond_to_vote_request(delivery_info, properties, payload)
     payload = JSON.parse(payload)
-    request_vote_reply = {}
+    #Step 1
+    if payload['term'] > @datacenter.current_term
+      @datacenter.change_term payload['term']
+    end
 
+    request_vote_reply = {}
     request_vote_reply[:granted] = grant_vote?(payload)
 
     #Update term and voted_for
     if request_vote_reply[:granted]
-      @datacenter.change_term payload['term']
       @datacenter.voted_for = payload['candidate_name']
       @datacenter.flush
       @election_timer.reset_timer
     end
 
-    request_vote_reply[:term] = @datacenter.current_term
-    request_vote_reply[:from] = @datacenter.name
+    request_vote_reply['term'] = @datacenter.current_term
+    request_vote_reply['from'] = @datacenter.name
     @logger.info "Reply RequestVoteRPC from #{payload['candidate_name']} with : #{request_vote_reply[:granted]}"
     @datacenter.request_vote_direct_exchange.publish(request_vote_reply.to_json,
                                                        :routing_key => properties.reply_to,
@@ -145,11 +151,15 @@ class Follower < State
 
   # @param payload[:term,:candidate_name,:last_log_index,:last_log_term]
   # @description Should I grant vote?
+  # 1. If other's term is just below my term, just deny
+  # 2. Else, use the log completeness criteria to see if I should grant.
+
   def grant_vote?(payload)
     if @datacenter.current_term > payload['term']
       return false
 
-    elsif @datacenter.current_term == payload['term']
+    else
+    # elsif @datacenter.current_term == payload['term']
       # This term already voted
       return false if @datacenter.voted_for != nil
       # 5.4.1 Election restriction
@@ -161,11 +171,7 @@ class Follower < State
       else
         return false
       end
-
-    else
-      return true
     end
-
   end
 
 
