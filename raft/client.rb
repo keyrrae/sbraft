@@ -1,3 +1,4 @@
+#!/usr/bin/ruby
 require 'bunny'
 require 'json'
 require_relative 'misc'
@@ -265,9 +266,6 @@ class ClientRequest
   end
 end
 
-
-c = Client.new('169.231.10.109', 'dc1')
-c.run
 
 
 =begin
