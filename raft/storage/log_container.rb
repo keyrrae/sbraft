@@ -158,7 +158,7 @@ module LogContainer
     s = ''
     index = 1
     @logs.each do |log_entry|
-      if log_entry.type == Misc::COMMITTED && !log_entry.is_special
+      if log_entry.type == Misc::COMMITTED && !log_entry.is_special && log_entry.message != 'Empty'
         s = "#{s}\n#{index}\t#{log_entry.message}"
         index += 1
       end
